@@ -1,3 +1,7 @@
+<?php
+session_start();
+require "../includes/nav.php";
+?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -6,20 +10,19 @@
 </head>
 <body>
 
-<?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
+<h1>Willkommen im Webshop</h1>
 
-session_start();
-if (isset($_SESSION["user_id"])) {
-    echo "Status: Eingeloggt<br>";
-    echo '<a href="../auth/logout.php">Logout</a>';
-} else {
-    echo "Status: Ausgeloggt<br>";
-    echo '<a href="../auth/login.php">Login</a>';
-}
-?>
+<p>
+    <?php
+    if (isset($_SESSION["user_id"])) {
+        echo "Sie sind eingeloggt.";
+    } else {
+        echo "Sie sind nicht eingeloggt.";
+    }
+    ?>
+</p>
+
+<p>Hier werden später die Produkte angezeigt.</p>
 
 </body>
 </html>
