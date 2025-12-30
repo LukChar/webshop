@@ -1,9 +1,4 @@
 <?php
-/* Fehleranzeige NUR für Entwicklung */
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
 session_start();
 require "../includes/db.php";
 
@@ -30,7 +25,7 @@ foreach ($_SESSION["cart"] as $productId => $quantity) {
     $product = $stmt->fetch();
 
     if (!$product) {
-        echo "Fehler: Produkt mit ID $productId nicht gefunden.";
+        echo "Fehler: Produkt nicht gefunden.";
         exit;
     }
 
@@ -44,11 +39,6 @@ $stmt = $pdo->prepare(
 $stmt->execute([$userId, $total]);
 
 $orderId = $pdo->lastInsertId();
-
-if (!$orderId) {
-    echo "Fehler: Bestellung konnte nicht gespeichert werden.";
-    exit;
-}
 
 /* Bestellpositionen speichern */
 foreach ($_SESSION["cart"] as $productId => $quantity) {

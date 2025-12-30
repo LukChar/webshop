@@ -1,29 +1,39 @@
 <?php
-require "../includes/admin_auth.php";
+session_start();
 require "../includes/db.php";
+require "../includes/nav.php";
 
-/* Alle Bestellungen laden */
-$stmt = $pdo->query("
-    SELECT orders.id, orders.total, orders.created_at, users.email
+/* Login erforderlich */
+if (!isset($_SESSION["user_id"])) {
+    header("Location: ../auth/login.php");
+    exit;
+}
+
+$userId = $_SESSION["user_id"];
+
+/* Bestellungen des Users laden */
+$stmt = $pdo->prepare("
+    SELECT id, total, created_at
     FROM orders
-    LEFT JOIN users ON orders.user_id = users.id
-    ORDER BY orders.created_at DESC
+    WHERE user_id = ?
+    ORDER BY created_at DESC
 ");
+$stmt->execute([$userId]);
 $orders = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Bestellungen</title>
+    <title>Meine Bestellungen</title>
 </head>
 <body>
 
-<h1>Bestellungen (Admin)</h1>
+<h1>Meine Bestellungen</h1>
 
 <?php if (empty($orders)): ?>
 
-    <p>Keine Bestellungen vorhanden.</p>
+    <p>Sie haben noch keine Bestellungen.</p>
 
 <?php else: ?>
 
@@ -32,7 +42,6 @@ $orders = $stmt->fetchAll();
         <div style="border:1px solid #000; padding:10px; margin-bottom:15px;">
 
             <strong>Bestellung #<?php echo $order["id"]; ?></strong><br>
-            Benutzer: <?php echo htmlspecialchars($order["email"] ?? "Unbekannt"); ?><br>
             Datum: <?php echo $order["created_at"]; ?><br>
             Gesamt: <?php echo number_format($order["total"], 2, ",", "."); ?> €
 
@@ -66,7 +75,7 @@ $orders = $stmt->fetchAll();
 <?php endif; ?>
 
 <p>
-    <a href="dashboard.php">Zurück zum Dashboard</a>
+    <a href="index.php">Zurück zur Startseite</a>
 </p>
 
 </body>

@@ -15,6 +15,7 @@ require "../includes/admin_auth.php";
 
 <ul>
     <li><a href="products.php">Produkte verwalten</a></li>
+    <li><a href="orders.php">Bestellungen ansehen</a></li>
 </ul>
 
 <p><a href="../public/index.php">Zurück zur Startseite</a></p>

@@ -8,6 +8,8 @@ if (session_status() === PHP_SESSION_NONE) {
     <a href="/webshop/public/index.php">Startseite</a>
     |
     <a href="/webshop/public/cart.php">Warenkorb</a>
+    |
+    <a href="/webshop/public/my_orders.php">Meine Bestellungen</a>
 
     <?php if (isset($_SESSION["user_id"])): ?>
         |
