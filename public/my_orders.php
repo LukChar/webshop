@@ -1,7 +1,10 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
 session_start();
-require "../includes/db.php";
-require "../includes/nav.php";
+require_once "../includes/db.php";
 
 /* Login erforderlich */
 if (!isset($_SESSION["user_id"])) {
@@ -11,7 +14,7 @@ if (!isset($_SESSION["user_id"])) {
 
 $userId = $_SESSION["user_id"];
 
-/* Bestellungen des Users laden */
+/* Bestellungen laden */
 $stmt = $pdo->prepare("
     SELECT id, total, created_at
     FROM orders
@@ -24,59 +27,87 @@ $orders = $stmt->fetchAll();
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Meine Bestellungen</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meine Bestellungen</title>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: "#13ec5b",
+                "background-light": "#f6f8f6",
+                "background-dark": "#102216",
+                "surface-light": "#ffffff",
+                "surface-dark": "#1a2e22",
+            },
+            fontFamily: {
+                display: ["Inter", "sans-serif"]
+            }
+        }
+    }
+}
+</script>
 </head>
-<body>
 
-<h1>Meine Bestellungen</h1>
+<body class="bg-background-light min-h-screen font-display">
 
-<?php if (empty($orders)): ?>
+<div class="max-w-md mx-auto p-4 pb-28">
 
-    <p>Sie haben noch keine Bestellungen.</p>
+    <h1 class="text-2xl font-bold mb-6">Meine Bestellungen</h1>
 
-<?php else: ?>
+    <?php if (empty($orders)): ?>
 
-    <?php foreach ($orders as $order): ?>
+        <p class="text-gray-500">
+            Du hast noch keine Bestellungen aufgegeben.
+        </p>
 
-        <div style="border:1px solid #000; padding:10px; margin-bottom:15px;">
+    <?php else: ?>
 
-            <strong>Bestellung #<?php echo $order["id"]; ?></strong><br>
-            Datum: <?php echo $order["created_at"]; ?><br>
-            Gesamt: <?php echo number_format($order["total"], 2, ",", "."); ?> €
+        <div class="flex flex-col gap-4">
 
-            <h4>Positionen:</h4>
+            <?php foreach ($orders as $order): ?>
 
-            <ul>
-                <?php
-                $stmtItems = $pdo->prepare("
-                    SELECT order_items.quantity, order_items.price, products.name
-                    FROM order_items
-                    JOIN products ON order_items.product_id = products.id
-                    WHERE order_items.order_id = ?
-                ");
-                $stmtItems->execute([$order["id"]]);
-                $items = $stmtItems->fetchAll();
+                <div class="bg-surface-light rounded-xl shadow-sm border p-4 flex flex-col gap-2">
 
-                foreach ($items as $item):
-                ?>
-                    <li>
-                        <?php echo htmlspecialchars($item["name"]); ?> –
-                        <?php echo $item["quantity"]; ?> ×
-                        <?php echo number_format($item["price"], 2, ",", "."); ?> €
-                    </li>
-                <?php endforeach; ?>
-            </ul>
+                    <div class="flex justify-between items-center">
+                        <span class="font-semibold">
+                            Bestellung #<?php echo $order["id"]; ?>
+                        </span>
+                        <span class="text-sm text-gray-500">
+                            <?php echo date("d.m.Y", strtotime($order["created_at"])); ?>
+                        </span>
+                    </div>
+
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">
+                            Gesamtbetrag
+                        </span>
+                        <span class="font-bold">
+                            <?php echo number_format($order["total"], 2, ",", "."); ?> €
+                        </span>
+                    </div>
+
+                    <a href="order_detail.php?id=<?php echo $order["id"]; ?>"
+                       class="text-sm font-medium text-primary hover:underline self-end">
+                        Details ansehen
+                    </a>
+
+                </div>
+
+            <?php endforeach; ?>
 
         </div>
 
-    <?php endforeach; ?>
+    <?php endif; ?>
 
-<?php endif; ?>
+</div>
 
-<p>
-    <a href="index.php">Zurück zur Startseite</a>
-</p>
+<?php require_once "../includes/bottom_nav.php"; ?>
 
 </body>
 </html>
