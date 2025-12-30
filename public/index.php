@@ -62,7 +62,7 @@ session_start();
 
 <!-- Headline -->
 <div class="flex items-center justify-between px-4 pt-4 pb-2">
-    <h2 class="text-xl font-bold">Beliebt bei Studis</h2>
+    <h2 class="text-xl font-bold">Produkte</h2>
     <span class="text-sm text-[#61896f]">Alle ansehen</span>
 </div>
 
