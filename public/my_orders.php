@@ -56,6 +56,12 @@ tailwind.config = {
 
 <body class="bg-background-light min-h-screen font-display">
 
+<!-- Zurück-Pfeil -->
+<a href="index.php"
+   class="fixed top-4 left-4 z-50 flex items-center justify-center w-10 h-10 rounded-full bg-white shadow hover:bg-gray-100">
+    ←
+</a>
+
 <div class="max-w-md mx-auto p-4 pb-28">
 
     <h1 class="text-2xl font-bold mb-6">Meine Bestellungen</h1>
@@ -106,8 +112,6 @@ tailwind.config = {
     <?php endif; ?>
 
 </div>
-
-
 
 </body>
 </html>
