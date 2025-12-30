@@ -1,32 +1,32 @@
 <?php
 session_start();
-require "../includes/db.php";
+require_once "../includes/db.php";
 
 /* Login erforderlich */
 if (!isset($_SESSION["user_id"])) {
-    echo "Fehler: Sie müssen eingeloggt sein, um eine Bestellung abzuschließen.";
+    header("Location: login.php");
     exit;
 }
 
-/* Warenkorb prüfen */
+/* Warenkorb darf nicht leer sein */
 if (!isset($_SESSION["cart"]) || empty($_SESSION["cart"])) {
-    echo "Fehler: Ihr Warenkorb ist leer.";
+    header("Location: cart.php");
     exit;
 }
 
 $userId = $_SESSION["user_id"];
+$cart = $_SESSION["cart"];
 $total = 0;
 
 /* Gesamtbetrag berechnen */
-foreach ($_SESSION["cart"] as $productId => $quantity) {
+foreach ($cart as $productId => $quantity) {
 
     $stmt = $pdo->prepare("SELECT price FROM products WHERE id = ?");
     $stmt->execute([$productId]);
     $product = $stmt->fetch();
 
     if (!$product) {
-        echo "Fehler: Produkt nicht gefunden.";
-        exit;
+        continue;
     }
 
     $total += $product["price"] * $quantity;
@@ -40,16 +40,20 @@ $stmt->execute([$userId, $total]);
 
 $orderId = $pdo->lastInsertId();
 
+if (!$orderId) {
+    echo "Fehler: Bestellung konnte nicht gespeichert werden.";
+    exit;
+}
+
 /* Bestellpositionen speichern */
-foreach ($_SESSION["cart"] as $productId => $quantity) {
+foreach ($cart as $productId => $quantity) {
 
     $stmt = $pdo->prepare("SELECT price FROM products WHERE id = ?");
     $stmt->execute([$productId]);
     $product = $stmt->fetch();
 
     if (!$product) {
-        echo "Fehler bei Bestellposition.";
-        exit;
+        continue;
     }
 
     $stmt = $pdo->prepare(
@@ -72,16 +76,28 @@ unset($_SESSION["cart"]);
 <head>
     <meta charset="UTF-8">
     <title>Bestellung abgeschlossen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-background-light font-display text-[#111813] flex items-center justify-center min-h-screen">
 
-<h1>Bestellung erfolgreich gespeichert</h1>
+<div class="bg-white rounded-xl shadow-sm p-8 max-w-md w-full text-center">
 
-<p>Vielen Dank für Ihre Bestellung.</p>
+    <h1 class="text-2xl font-bold mb-4">Bestellung erfolgreich</h1>
 
-<p>
-    <a href="index.php">Zurück zur Startseite</a>
-</p>
+    <p class="text-gray-600 mb-6">
+        Vielen Dank für Ihre Bestellung.  
+        Ihre Bestellung wurde erfolgreich gespeichert.
+    </p>
+
+    <a href="index.php"
+       class="inline-block bg-primary text-black font-bold px-6 py-3 rounded-lg hover:bg-green-400 transition-colors">
+        Zurück zur Startseite
+    </a>
+
+</div>
 
 </body>
 </html>

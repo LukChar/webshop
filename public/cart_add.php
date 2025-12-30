@@ -2,19 +2,19 @@
 session_start();
 
 /* Prüfen, ob Produkt-ID übergeben wurde */
-if (!isset($_GET["id"])) {
-    echo "Kein Produkt ausgewählt.";
+if (!isset($_POST["product_id"])) {
+    header("Location: index.php");
     exit;
 }
 
-$productId = (int) $_GET["id"];
+$productId = (int) $_POST["product_id"];
 
 /* Warenkorb initialisieren */
 if (!isset($_SESSION["cart"])) {
     $_SESSION["cart"] = [];
 }
 
-/* Produkt zur Session hinzufügen */
+/* Produkt hinzufügen oder Menge erhöhen */
 if (isset($_SESSION["cart"][$productId])) {
     $_SESSION["cart"][$productId]++;
 } else {

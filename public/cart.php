@@ -1,94 +1,161 @@
 <?php
 session_start();
-require "../includes/db.php";
-require "../includes/nav.php";
+require_once "../includes/db.php";
 
-/* Warenkorb aus der Session holen */
-if (!isset($_SESSION["cart"]) || empty($_SESSION["cart"])) {
-    $cart = [];
-} else {
-    $cart = $_SESSION["cart"];
-}
+/* Warenkorb laden */
+$cart = $_SESSION["cart"] ?? [];
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html class="light" lang="de">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Warenkorb</title>
-</head>
-<body>
 
-<h1>Warenkorb</h1>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c3326",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { min-height: max(884px, 100dvh); }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111813] dark:text-gray-100 flex flex-col h-[100dvh] overflow-hidden antialiased">
+
+<!-- Top Bar -->
+<header class="shrink-0 px-4 py-4 flex items-center justify-between">
+    <a href="index.php"
+       class="flex size-10 items-center justify-center rounded-full hover:bg-black/5 dark:hover:bg-white/10">
+        <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+
+    <h1 class="text-lg font-bold">
+        Warenkorb (<?php echo array_sum($cart); ?>)
+    </h1>
+
+    <div class="size-10"></div>
+</header>
+
+<!-- Content -->
+<main class="flex-1 overflow-y-auto px-4 pb-32">
 
 <?php if (empty($cart)): ?>
 
-    <p>Ihr Warenkorb ist leer.</p>
+    <p class="text-gray-500">Ihr Warenkorb ist leer.</p>
 
 <?php else: ?>
 
-    <table border="1" cellpadding="5" cellspacing="0">
-        <tr>
-            <th>Produkt</th>
-            <th>Menge</th>
-            <th>Preis</th>
-            <th>Zwischensumme</th>
-            <th>Aktion</th>
-        </tr>
+<?php
+$total = 0;
 
-        <?php
-        $total = 0;
+foreach ($cart as $productId => $quantity):
 
-        foreach ($cart as $productId => $quantity):
+    $stmt = $pdo->prepare("SELECT id, name, price, image FROM products WHERE id = ?");
+    $stmt->execute([$productId]);
+    $product = $stmt->fetch();
 
-            $stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
-            $stmt->execute([$productId]);
-            $product = $stmt->fetch();
+    if (!$product) {
+        continue;
+    }
 
-            if (!$product) {
-                continue;
-            }
+    $subtotal = $product["price"] * $quantity;
+    $total += $subtotal;
+?>
 
-            $subtotal = $product["price"] * $quantity;
-            $total += $subtotal;
-        ?>
-            <tr>
-                <td><?php echo htmlspecialchars($product["name"]); ?></td>
+    <!-- Cart Item -->
+    <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 mb-4 shadow-sm">
+        <div class="flex gap-4">
 
-                <td>
-                    <a href="cart_update.php?id=<?php echo $productId; ?>&action=minus">−</a>
-                    <?php echo $quantity; ?>
-                    <a href="cart_update.php?id=<?php echo $productId; ?>&action=plus">+</a>
-                </td>
+            <!-- Image -->
+            <div
+                class="shrink-0 rounded-lg w-[80px] h-[100px] bg-center bg-cover"
+                style="background-image: url('<?php echo htmlspecialchars($product["image"]); ?>');">
+            </div>
 
-                <td><?php echo number_format($product["price"], 2, ",", "."); ?> €</td>
+            <!-- Details -->
+            <div class="flex flex-1 flex-col">
 
-                <td><?php echo number_format($subtotal, 2, ",", "."); ?> €</td>
+                <div class="flex justify-between items-start">
+                    <h3 class="font-semibold leading-tight">
+                        <?php echo htmlspecialchars($product["name"]); ?>
+                    </h3>
 
-                <td>
-                    <a href="cart_remove.php?id=<?php echo $productId; ?>">
-                        Entfernen
+                    <a href="cart_remove.php?id=<?php echo $productId; ?>"
+                       class="text-gray-400 hover:text-red-500">
+                        <span class="material-symbols-outlined">delete</span>
                     </a>
-                </td>
-            </tr>
-        <?php endforeach; ?>
+                </div>
 
-        <tr>
-            <td colspan="3"><strong>Gesamt</strong></td>
-            <td colspan="2">
-                <strong><?php echo number_format($total, 2, ",", "."); ?> €</strong>
-            </td>
-        </tr>
-    </table>
+                <div class="flex justify-between items-end mt-auto pt-4">
+                    <span class="font-bold">
+                        <?php echo number_format($product["price"], 2, ",", "."); ?> €
+                    </span>
 
-    <p>
-        <a href="checkout.php">Bestellung abschließen</a>
-    </p>
+                    <!-- Quantity -->
+                    <div class="flex items-center gap-2">
+                        <a href="cart_update.php?id=<?php echo $productId; ?>&action=minus">−</a>
+                        <span><?php echo $quantity; ?></span>
+                        <a href="cart_update.php?id=<?php echo $productId; ?>&action=plus">+</a>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+<?php endforeach; ?>
+
+    <!-- Summary -->
+    <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-5 shadow-sm">
+        <div class="flex justify-between py-2">
+            <span>Zwischensumme</span>
+            <span><?php echo number_format($total, 2, ",", "."); ?> €</span>
+        </div>
+        <div class="flex justify-between py-2 font-bold text-lg">
+            <span>Gesamt</span>
+            <span><?php echo number_format($total, 2, ",", "."); ?> €</span>
+        </div>
+    </div>
 
 <?php endif; ?>
 
-<p>
-    <a href="index.php">Weiter einkaufen</a>
-</p>
+</main>
+
+<!-- Checkout -->
+<?php if (!empty($cart)): ?>
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-surface-light dark:bg-surface-dark border-t">
+    <a href="checkout.php"
+       class="block text-center w-full h-14 bg-primary font-bold rounded-xl leading-[3.5rem]">
+        Zur Kasse gehen
+    </a>
+</div>
+<?php endif; ?>
 
 </body>
 </html>

@@ -1,58 +1,111 @@
 <?php
 session_start();
-require "../includes/db.php";
-require "../includes/nav.php";
-
-/* Produkte aus der Datenbank laden */
-$stmt = $pdo->query("SELECT * FROM products");
-$products = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html class="light" lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Webshop</title>
-</head>
-<body>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>CampusShop – Produktübersicht</title>
 
-<h1>Produkte</h1>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet"/>
+
+    <!-- Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c2e22",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-[#111813] dark:text-[#e0e6e2] font-display antialiased pb-24">
+
+<?php require_once "../includes/header.php"; ?>
+
+<!-- Suchfeld -->
+<div class="px-4 py-2">
+    <input
+        type="text"
+        placeholder="Suche nach Produkten..."
+        class="w-full h-12 rounded-lg px-4 bg-white dark:bg-surface-dark text-[#111813] dark:text-white"
+    >
+</div>
+
+<!-- Headline -->
+<div class="flex items-center justify-between px-4 pt-4 pb-2">
+    <h2 class="text-xl font-bold">Beliebt bei Studis</h2>
+    <span class="text-sm text-[#61896f]">Alle ansehen</span>
+</div>
+
+<?php
+require_once "../includes/db.php";
+
+/* Produkte laden */
+$stmt = $pdo->query("
+    SELECT id, name, price, image
+    FROM products
+");
+$products = $stmt->fetchAll();
+?>
 
 <?php if (empty($products)): ?>
-    <p>Derzeit sind keine Produkte verfügbar.</p>
+
+    <p class="px-4 text-gray-500">Keine Produkte vorhanden.</p>
+
 <?php else: ?>
 
-    <?php foreach ($products as $product): ?>
+    <div class="px-4 pb-4">
+        <div class="grid grid-cols-2 gap-4">
 
-        <div style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
+            <?php foreach ($products as $product): ?>
 
-            <h2>
-                <a href="product.php?id=<?php echo $product["id"]; ?>">
-                    <?php echo htmlspecialchars($product["name"]); ?>
-                </a>
-            </h2>
+                <?php
+                $productId = $product["id"];
+                $productName = $product["name"];
+                $productPrice = $product["price"];
+                $productOldPrice = null;
+                $productImage = $product["image"];
+                ?>
 
-            <p>
-                <?php echo htmlspecialchars($product["description"]); ?>
-            </p>
+                <?php require "../includes/product_card.php"; ?>
 
-            <p>
-                <strong>
-                    Preis:
-                    <?php echo number_format($product["price"], 2, ",", "."); ?> €
-                </strong>
-            </p>
-
-            <p>
-                <a href="cart_add.php?id=<?php echo $product["id"]; ?>">
-                    In den Warenkorb
-                </a>
-            </p>
+            <?php endforeach; ?>
 
         </div>
-
-    <?php endforeach; ?>
+    </div>
 
 <?php endif; ?>
+
+<?php require_once "../includes/footer.php"; ?>
 
 </body>
 </html>
