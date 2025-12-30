@@ -15,7 +15,7 @@ if (isset($_SESSION["cart"])) {
     <div class="flex items-center p-4 justify-between h-16">
 
         <!-- Profil -->
-        <a href="/webshop/public/my_orders.php"
+        <a href="/webshop/public/profile.php"
            class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark transition-colors">
             <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 28px;">
                 account_circle
