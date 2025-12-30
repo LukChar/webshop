@@ -157,5 +157,7 @@ foreach ($cart as $productId => $quantity):
 </div>
 <?php endif; ?>
 
+<?php require_once "../includes/bottom_nav.php"; ?>
+
 </body>
 </html>

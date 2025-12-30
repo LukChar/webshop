@@ -106,6 +106,7 @@ $products = $stmt->fetchAll();
 <?php endif; ?>
 
 <?php require_once "../includes/footer.php"; ?>
+<?php require_once "../includes/bottom_nav.php"; ?>
 
 </body>
 </html>
