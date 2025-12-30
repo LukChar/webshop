@@ -46,7 +46,7 @@ $cart = $_SESSION["cart"] ?? [];
     </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark font-display text-[#111813] dark:text-gray-100 flex flex-col h-[100dvh] overflow-hidden antialiased">
+<body class="bg-background-light dark:bg-background-dark font-display text-[#111813] dark:text-gray-100 flex flex-col h-[100dvh] overflow-x-hidden antialiased">
 
 <!-- Top Bar -->
 <header class="shrink-0 px-4 py-4 flex items-center justify-between">
@@ -63,7 +63,7 @@ $cart = $_SESSION["cart"] ?? [];
 </header>
 
 <!-- Content -->
-<main class="flex-1 overflow-y-auto px-4 pb-32">
+<main class="flex-1 overflow-y-auto px-4 pb-44">
 
 <?php if (empty($cart)): ?>
 
@@ -118,7 +118,7 @@ foreach ($cart as $productId => $quantity):
                     </span>
 
                     <!-- Quantity -->
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-3 text-lg">
                         <a href="cart_update.php?id=<?php echo $productId; ?>&action=minus">−</a>
                         <span><?php echo $quantity; ?></span>
                         <a href="cart_update.php?id=<?php echo $productId; ?>&action=plus">+</a>
@@ -147,9 +147,9 @@ foreach ($cart as $productId => $quantity):
 
 </main>
 
-<!-- Checkout -->
+<!-- Checkout Button (über Bottom-Navigation) -->
 <?php if (!empty($cart)): ?>
-<div class="fixed bottom-0 left-0 right-0 p-4 bg-surface-light dark:bg-surface-dark border-t">
+<div class="fixed bottom-16 left-0 right-0 p-4 bg-surface-light dark:bg-surface-dark border-t z-30">
     <a href="checkout.php"
        class="block text-center w-full h-14 bg-primary font-bold rounded-xl leading-[3.5rem]">
         Zur Kasse gehen
