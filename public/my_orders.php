@@ -107,7 +107,7 @@ tailwind.config = {
 
 </div>
 
-<?php require_once "../includes/bottom_nav.php"; ?>
+
 
 </body>
 </html>

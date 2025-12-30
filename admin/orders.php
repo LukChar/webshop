@@ -1,73 +1,121 @@
 <?php
-require "../includes/admin_auth.php";
-require "../includes/db.php";
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+session_start();
+require_once "../includes/db.php";
+
+/* Admin-Check */
+if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
+    echo "Zugriff verweigert.";
+    exit;
+}
 
 /* Alle Bestellungen laden */
 $stmt = $pdo->query("
-    SELECT orders.id, orders.total, orders.created_at, users.email
-    FROM orders
-    LEFT JOIN users ON orders.user_id = users.id
-    ORDER BY orders.created_at DESC
+    SELECT 
+        o.id,
+        o.total,
+        o.created_at,
+        u.email
+    FROM orders o
+    JOIN users u ON u.id = o.user_id
+    ORDER BY o.created_at DESC
 ");
 $orders = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Bestellungen</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – Bestellungen</title>
+
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: "#13ec5b"
+            },
+            fontFamily: {
+                display: ["Inter", "sans-serif"]
+            }
+        }
+    }
+}
+</script>
 </head>
-<body>
 
-<h1>Bestellungen (Admin)</h1>
+<body class="bg-gray-100 font-display">
 
-<?php if (empty($orders)): ?>
+<div class="max-w-5xl mx-auto p-6">
 
-    <p>Keine Bestellungen vorhanden.</p>
+    <h1 class="text-2xl font-bold mb-6">Alle Bestellungen (Admin)</h1>
 
-<?php else: ?>
+    <?php if (empty($orders)): ?>
 
-    <?php foreach ($orders as $order): ?>
+        <p class="text-gray-500">Keine Bestellungen vorhanden.</p>
 
-        <div style="border:1px solid #000; padding:10px; margin-bottom:15px;">
+    <?php else: ?>
 
-            <strong>Bestellung #<?php echo $order["id"]; ?></strong><br>
-            Benutzer: <?php echo htmlspecialchars($order["email"] ?? "Unbekannt"); ?><br>
-            Datum: <?php echo $order["created_at"]; ?><br>
-            Gesamt: <?php echo number_format($order["total"], 2, ",", "."); ?> €
+        <div class="overflow-x-auto bg-white rounded-xl shadow-sm border">
 
-            <h4>Positionen:</h4>
+            <table class="w-full border-collapse">
+                <thead class="bg-gray-50 text-left text-sm">
+                    <tr>
+                        <th class="p-3">Bestell-ID</th>
+                        <th class="p-3">Benutzer</th>
+                        <th class="p-3">Datum</th>
+                        <th class="p-3">Gesamt</th>
+                        <th class="p-3">Aktion</th>
+                    </tr>
+                </thead>
+                <tbody>
 
-            <ul>
-                <?php
-                $stmtItems = $pdo->prepare("
-                    SELECT order_items.quantity, order_items.price, products.name
-                    FROM order_items
-                    JOIN products ON order_items.product_id = products.id
-                    WHERE order_items.order_id = ?
-                ");
-                $stmtItems->execute([$order["id"]]);
-                $items = $stmtItems->fetchAll();
+                <?php foreach ($orders as $order): ?>
 
-                foreach ($items as $item):
-                ?>
-                    <li>
-                        <?php echo htmlspecialchars($item["name"]); ?> –
-                        <?php echo $item["quantity"]; ?> ×
-                        <?php echo number_format($item["price"], 2, ",", "."); ?> €
-                    </li>
+                    <tr class="border-t hover:bg-gray-50">
+                        <td class="p-3 font-medium">
+                            #<?php echo $order["id"]; ?>
+                        </td>
+
+                        <td class="p-3">
+                            <?php echo htmlspecialchars($order["email"]); ?>
+                        </td>
+
+                        <td class="p-3 text-sm text-gray-600">
+                            <?php echo date("d.m.Y H:i", strtotime($order["created_at"])); ?>
+                        </td>
+
+                        <td class="p-3 font-semibold">
+                            <?php echo number_format($order["total"], 2, ",", "."); ?> €
+                        </td>
+
+                        <td class="p-3">
+                            <a
+                                href="../public/order_detail.php?id=<?php echo $order["id"]; ?>"
+                                class="text-primary font-medium hover:underline"
+                            >
+                                Details
+                            </a>
+                        </td>
+                    </tr>
+
                 <?php endforeach; ?>
-            </ul>
+
+                </tbody>
+            </table>
 
         </div>
 
-    <?php endforeach; ?>
+    <?php endif; ?>
 
-<?php endif; ?>
-
-<p>
-    <a href="dashboard.php">Zurück zum Dashboard</a>
-</p>
+</div>
 
 </body>
 </html>

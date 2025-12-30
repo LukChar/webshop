@@ -3,55 +3,42 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-$currentPage = basename($_SERVER["PHP_SELF"]);
-
-/* Warenkorb-Anzahl */
-$cartCount = 0;
-if (isset($_SESSION["cart"])) {
-    $cartCount = array_sum($_SESSION["cart"]);
-}
+$cartCount = isset($_SESSION["cart"]) ? array_sum($_SESSION["cart"]) : 0;
 ?>
-<nav class="fixed bottom-0 left-0 right-0 bg-surface-light dark:bg-surface-dark border-t border-gray-200 dark:border-border-dark px-6 py-2 z-50">
-    <div class="flex justify-between items-end max-w-md mx-auto">
+<nav class="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-background-dark border-t border-gray-200 dark:border-gray-800">
+    <div class="flex justify-around items-center h-16 max-w-md mx-auto">
 
         <!-- Home -->
         <a href="/webshop/public/index.php"
-           class="flex flex-col items-center gap-1
-           <?php echo ($currentPage === 'index.php')
-               ? 'text-[#111813] dark:text-white font-bold'
-               : 'text-gray-500 hover:text-[#111813] dark:hover:text-white'; ?>">
+           class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-primary">
             <span class="material-symbols-outlined text-[24px]">home</span>
-            <span class="text-[10px]">Start</span>
+            <span class="text-[10px] font-medium">Home</span>
         </a>
+
+        <!-- Suche (optional Platzhalter) -->
+        <div class="flex flex-col items-center justify-center w-full h-full text-gray-300">
+            <span class="material-symbols-outlined text-[24px]">search</span>
+            <span class="text-[10px] font-medium">Suche</span>
+        </div>
 
         <!-- Warenkorb -->
         <a href="/webshop/public/cart.php"
-           class="relative flex flex-col items-center gap-1
-           <?php echo ($currentPage === 'cart.php')
-               ? 'text-[#111813] dark:text-white font-bold'
-               : 'text-gray-500 hover:text-[#111813] dark:hover:text-white'; ?>">
-
-            <span class="material-symbols-outlined text-[24px]">
-                shopping_cart
-            </span>
+           class="relative flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-primary">
+            <span class="material-symbols-outlined text-[24px]">shopping_cart</span>
+            <span class="text-[10px] font-medium">Warenkorb</span>
 
             <?php if ($cartCount > 0): ?>
-                <span class="absolute -top-1 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black">
+                <span class="absolute top-2 right-6 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black">
                     <?php echo $cartCount; ?>
                 </span>
             <?php endif; ?>
-
-            <span class="text-[10px]">Warenkorb</span>
         </a>
 
         <!-- Profil -->
         <a href="/webshop/public/profile.php"
-           class="flex flex-col items-center gap-1
-           <?php echo ($currentPage === 'profile.php')
-               ? 'text-primary font-bold'
-               : 'text-gray-500 hover:text-[#111813] dark:hover:text-white'; ?>">
+           class="flex flex-col items-center justify-center w-full h-full text-gray-400 hover:text-primary">
             <span class="material-symbols-outlined text-[24px]">person</span>
-            <span class="text-[10px]">Profil</span>
+            <span class="text-[10px] font-medium">Profil</span>
         </a>
 
     </div>
