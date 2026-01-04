@@ -17,14 +17,10 @@ if ($reviewId <= 0 || $productId <= 0) {
 }
 
 /* Review prüfen */
-$stmt = $pdo->prepare("
-    SELECT id FROM reviews
-    WHERE id = ? AND product_id = ?
-    LIMIT 1
-");
+$stmt = $pdo->prepare("SELECT id FROM reviews WHERE id = ? AND product_id = ? LIMIT 1");
 $stmt->execute([$reviewId, $productId]);
 if (!$stmt->fetch()) {
-    header("Location: ../product.php?id=$productId");
+    header("Location: ../product.php?id={$productId}#reviews");
     exit;
 }
 
@@ -41,12 +37,21 @@ try {
     if ($stmt->rowCount() > 0) {
         $stmt = $pdo->prepare("UPDATE reviews SET helpful = helpful + 1 WHERE id = ?");
         $stmt->execute([$reviewId]);
+
+        $pdo->commit();
+        header("Location: ../product.php?id={$productId}#reviews");
+        exit;
     }
 
+    /* schon gevotet */
     $pdo->commit();
+    $msg = urlencode("Du hast diese Rezension bereits als hilfreich markiert.");
+    header("Location: ../product.php?id={$productId}&msg={$msg}#reviews");
+    exit;
+
 } catch (PDOException $e) {
     $pdo->rollBack();
+    $msg = urlencode("Fehler beim Speichern der hilfreichen Bewertung.");
+    header("Location: ../product.php?id={$productId}&err={$msg}#reviews");
+    exit;
 }
-
-header("Location: ../product.php?id=$productId#reviews");
-exit;

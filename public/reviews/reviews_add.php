@@ -7,53 +7,58 @@ if (!isset($_SESSION["user_id"])) {
     exit;
 }
 
-$userId     = (int)$_SESSION["user_id"];
-$productId  = isset($_POST["product_id"]) ? (int)$_POST["product_id"] : 0;
-$rating     = isset($_POST["rating"]) ? (int)$_POST["rating"] : -1;
-$text       = trim($_POST["text"] ?? "");
+$productId = isset($_POST["product_id"]) ? (int)$_POST["product_id"] : 0;
 $authorName = trim($_POST["author_name"] ?? "");
+$rating = isset($_POST["rating"]) ? (int)$_POST["rating"] : -1;
+$text = trim($_POST["text"] ?? "");
 
 if ($productId <= 0) {
     header("Location: ../index.php");
     exit;
 }
 
-if ($rating < 0 || $rating > 5) {
-    header("Location: ../product.php?id=$productId&err=rating#reviews");
-    exit;
-}
+/* VALIDATION */
+$errors = [];
 
-if (mb_strlen($text) < 3) {
-    header("Location: ../product.php?id=$productId&err=text#reviews");
-    exit;
-}
-
-/* Name Pflicht */
-$authorName = preg_replace('/\s+/', ' ', $authorName); // Mehrfach-Spaces normalisieren
 if (mb_strlen($authorName) < 2 || mb_strlen($authorName) > 100) {
-    header("Location: ../product.php?id=$productId&err=name#reviews");
+    $errors[] = "Bitte einen gültigen Namen eingeben (2–100 Zeichen).";
+}
+if (!is_int($rating) || $rating < 0 || $rating > 5) {
+    $errors[] = "Bitte eine Bewertung zwischen 0 und 5 auswählen.";
+}
+if (mb_strlen($text) < 3) {
+    $errors[] = "Bitte einen Rezensionstext eingeben (mind. 3 Zeichen).";
+}
+
+if (!empty($errors)) {
+    $msg = urlencode(implode(" ", $errors));
+    header("Location: ../product.php?id={$productId}&err={$msg}");
     exit;
 }
 
-/* Produkt prüfen */
-$stmt = $pdo->prepare("SELECT id FROM products WHERE id = ? LIMIT 1");
-$stmt->execute([$productId]);
-if (!$stmt->fetch()) {
-    header("Location: ../index.php");
-    exit;
+$userId = (int)$_SESSION["user_id"];
+
+/* Optional: nur 1 Review pro User & Produkt */
+$stmt = $pdo->prepare("SELECT id FROM reviews WHERE product_id = ? AND user_id = ? LIMIT 1");
+$stmt->execute([$productId, $userId]);
+$existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($existing) {
+    // Update existing
+    $stmt = $pdo->prepare("
+        UPDATE reviews
+        SET author_name = ?, rating = ?, text = ?, created_at = NOW()
+        WHERE id = ?
+    ");
+    $stmt->execute([$authorName, $rating, $text, $existing["id"]]);
+} else {
+    // Insert new
+    $stmt = $pdo->prepare("
+        INSERT INTO reviews (product_id, user_id, author_name, rating, text)
+        VALUES (?, ?, ?, ?, ?)
+    ");
+    $stmt->execute([$productId, $userId, $authorName, $rating, $text]);
 }
 
-/* Review speichern oder aktualisieren */
-$stmt = $pdo->prepare("
-    INSERT INTO reviews (product_id, user_id, author_name, rating, text)
-    VALUES (?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE
-        author_name = VALUES(author_name),
-        rating = VALUES(rating),
-        text = VALUES(text),
-        created_at = CURRENT_TIMESTAMP
-");
-$stmt->execute([$productId, $userId, $authorName, $rating, $text]);
-
-header("Location: ../product.php?id=$productId#reviews");
+header("Location: ../product.php?id={$productId}#reviews");
 exit;
