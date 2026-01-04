@@ -5,7 +5,6 @@ error_reporting(E_ALL);
 
 session_start();
 
-/* Login erforderlich */
 if (!isset($_SESSION["user_id"])) {
     header("Location: /webshop/auth/login.php");
     exit;
@@ -17,7 +16,7 @@ $userId  = $_SESSION["user_id"];
 $message = "";
 $error   = "";
 
-/* PROFIL AKTUALISIEREN */
+/* ===== PROFIL AKTUALISIEREN ===== */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $newEmail    = trim($_POST["email"] ?? "");
@@ -29,11 +28,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $error = "Ungültige E-Mail-Adresse.";
     } else {
 
-        /* E-Mail aktualisieren */
+        // E-Mail aktualisieren
         $stmt = $pdo->prepare("UPDATE users SET email = ? WHERE id = ?");
         $stmt->execute([$newEmail, $userId]);
 
-        /* Passwort nur ändern, wenn eingegeben */
+        // Passwort nur ändern, wenn gesetzt
         if ($newPassword !== "") {
             if (strlen($newPassword) < 6) {
                 $error = "Passwort muss mindestens 6 Zeichen haben.";
@@ -50,9 +49,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-/* USER DATEN LADEN */
+/* ===== USER DATEN LADEN ===== */
 $stmt = $pdo->prepare("
-    SELECT email, role
+    SELECT email
     FROM users
     WHERE id = ?
     LIMIT 1
@@ -66,18 +65,20 @@ if (!$user) {
 }
 
 $email = $user["email"];
-$role  = $user["role"];
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html class="light" lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Profil bearbeiten</title>
 
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
 
 <script>
 tailwind.config = {
@@ -90,6 +91,8 @@ tailwind.config = {
                 "background-dark": "#102216",
                 "surface-light": "#ffffff",
                 "surface-dark": "#1a2c20",
+                "border-light": "#e5e7eb",
+                "border-dark": "#2d4234",
             },
             fontFamily: {
                 display: ["Inter", "sans-serif"]
@@ -104,79 +107,83 @@ body { min-height: max(884px, 100dvh); }
 </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark font-display text-[#111813]">
+<body class="bg-background-light dark:bg-background-dark text-[#111813] dark:text-gray-100 font-display pb-24">
 
-<div class="max-w-md mx-auto min-h-screen flex flex-col">
+<?php require_once "../includes/header.php"; ?>
 
-<!-- HEADER -->
-<header class="sticky top-0 z-10 flex items-center justify-between bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md p-4 border-b">
-    <a href="/webshop/public/profile.php"
-       class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
-        <span class="material-symbols-outlined">arrow_back</span>
-    </a>
+<main class="max-w-md mx-auto px-4 pt-6 space-y-8">
 
-    <h1 class="text-lg font-bold">Profil bearbeiten</h1>
+    <!-- ===== PROFIL BEARBEITEN ===== -->
+    <section>
+        <h2 class="text-lg font-bold mb-4 px-1">Profil bearbeiten</h2>
 
-    <div class="size-10"></div>
-</header>
+        <?php if ($message): ?>
+            <p class="text-green-600 text-sm mb-2"><?php echo htmlspecialchars($message); ?></p>
+        <?php endif; ?>
 
-<main class="flex-1 px-4 pt-6 pb-24">
+        <?php if ($error): ?>
+            <p class="text-red-600 text-sm mb-2"><?php echo htmlspecialchars($error); ?></p>
+        <?php endif; ?>
 
-<?php if ($message): ?>
-    <p class="text-green-600 text-sm mb-4">
-        <?php echo htmlspecialchars($message); ?>
-    </p>
-<?php endif; ?>
+        <form method="post"
+              class="bg-surface-light dark:bg-surface-dark p-5 rounded-2xl shadow-sm border border-border-light dark:border-border-dark space-y-4">
 
-<?php if ($error): ?>
-    <p class="text-red-600 text-sm mb-4">
-        <?php echo htmlspecialchars($error); ?>
-    </p>
-<?php endif; ?>
+            <label class="flex flex-col gap-1.5">
+                <span class="text-sm font-medium">E-Mail Adresse</span>
+                <input
+                    type="email"
+                    name="email"
+                    required
+                    value="<?php echo htmlspecialchars($email); ?>"
+                    class="h-12 rounded-xl px-4 border border-border-light dark:border-border-dark bg-background-light dark:bg-black/20"
+                >
+            </label>
 
-<form method="post" class="space-y-5">
+            <label class="flex flex-col gap-1.5">
+                <span class="text-sm font-medium">Neues Passwort (optional)</span>
+                <input
+                    type="password"
+                    name="password"
+                    placeholder="Mindestens 6 Zeichen"
+                    class="h-12 rounded-xl px-4 border border-border-light dark:border-border-dark bg-background-light dark:bg-black/20"
+                >
+            </label>
 
-    <div>
-        <label class="block text-sm font-medium mb-1">
-            E-Mail-Adresse
-        </label>
-        <input
-            type="email"
-            name="email"
-            required
-            value="<?php echo htmlspecialchars($email); ?>"
-            class="w-full h-12 rounded-lg border p-3"
-        >
-    </div>
+            <button
+                type="submit"
+                class="w-full h-12 rounded-xl bg-primary font-bold text-[#102216]">
+                Änderungen speichern
+            </button>
+        </form>
+    </section>
 
-    <div>
-        <label class="block text-sm font-medium mb-1">
-            Neues Passwort (optional)
-        </label>
-        <input
-            type="password"
-            name="password"
-            class="w-full h-12 rounded-lg border p-3"
-            placeholder="Mindestens 6 Zeichen"
-        >
-    </div>
+    <!-- ===== VERWALTUNG ===== -->
+    <section>
+        <h2 class="text-lg font-bold mb-4 px-1">Verwaltung</h2>
 
-    <div class="pt-4 flex gap-3">
-        <a href="/webshop/public/profile.php"
-           class="flex-1 h-12 rounded-lg border flex items-center justify-center font-medium">
-            Abbrechen
-        </a>
+        <div class="bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm border border-border-light dark:border-border-dark divide-y">
 
-        <button
-            type="submit"
-            class="flex-1 h-12 rounded-lg bg-primary font-bold text-[#102216]">
-            Speichern
-        </button>
-    </div>
+            <a href="/webshop/public/my_orders.php"
+               class="block p-4 hover:bg-gray-50 dark:hover:bg-white/5">
+                Meine Bestellungen
+            </a>
 
-</form>
+            <a href="#"
+               class="block p-4 hover:bg-gray-50 dark:hover:bg-white/5">
+                Favoriten
+            </a>
+
+            <a href="/webshop/auth/logout.php"
+               class="block p-4 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10">
+                Abmelden
+            </a>
+
+        </div>
+    </section>
 
 </main>
-</div>
+
+<?php require_once "../includes/bottom_nav.php"; ?>
+
 </body>
 </html>

@@ -4,32 +4,54 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
+require "../includes/admin_auth.php";
 require "../includes/db.php";
 
-/* Admin-Check */
-if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
-    echo "Zugriff verweigert.";
-    exit;
+$message = "";
+
+/* Kategorien laden */
+$stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC");
+$categories = $stmt->fetchAll();
+
+/* Produkt anlegen */
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+
+    $name = trim($_POST["name"] ?? "");
+    $price = $_POST["price"] ?? "";
+    $description = trim($_POST["description"] ?? "");
+    $categoryId = $_POST["category_id"] ?? "";
+
+    if ($name === "" || $price === "" || $description === "" || $categoryId === "") {
+        $message = "Bitte alle Felder ausfüllen.";
+    } else {
+        $stmt = $pdo->prepare(
+            "INSERT INTO products (name, price, description, category_id)
+             VALUES (?, ?, ?, ?)"
+        );
+        $stmt->execute([$name, $price, $description, $categoryId]);
+        $message = "Produkt erfolgreich angelegt.";
+    }
 }
 
 /* Produkte laden */
 $stmt = $pdo->query("
-    SELECT id, name, price, image
-    FROM products
-    ORDER BY id DESC
+    SELECT p.id, p.name, p.price, c.name AS category
+    FROM products p
+    LEFT JOIN categories c ON c.id = p.category_id
+    ORDER BY p.id DESC
 ");
 $products = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
-<html class="light" lang="de">
+<html lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Produktverwaltung (Admin)</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Produktverwaltung</title>
 
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
 
 <script>
 tailwind.config = {
@@ -37,10 +59,9 @@ tailwind.config = {
         extend: {
             colors: {
                 primary: "#13ec5b",
-                "background-light": "#f6f8f6",
-                "background-dark": "#102216",
-                "surface-light": "#ffffff",
-                "surface-dark": "#162e20",
+                bgLight: "#f6f8f6",
+                bgDark: "#102216",
+                surface: "#ffffff"
             },
             fontFamily: {
                 display: ["Inter", "sans-serif"]
@@ -49,82 +70,102 @@ tailwind.config = {
     }
 }
 </script>
-
-<style>
-body { min-height: max(884px, 100dvh); }
-</style>
 </head>
 
-<body class="bg-background-light font-display">
+<body class="bg-bgLight font-display text-[#111813]">
 
-<div class="flex min-h-screen flex-col pb-24">
+<div class="max-w-md mx-auto min-h-screen pb-24">
 
-<!-- Header -->
-<header class="sticky top-0 z-10 bg-background-light px-4 pt-4 pb-2">
-    <div class="flex items-center justify-between h-12">
-        <a href="index.php"
-           class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-black/5">
-            <span class="material-symbols-outlined">arrow_back</span>
-        </a>
-
-        <a href="product_create.php"
-           class="flex items-center justify-center h-10 px-4 rounded-full bg-primary text-black gap-2 text-sm font-bold">
-            <span class="material-symbols-outlined">add</span>
-            Neu
-        </a>
-    </div>
-
-    <h1 class="mt-2 text-[32px] font-bold">
-        Produktverwaltung
-    </h1>
+<!-- HEADER -->
+<header class="sticky top-0 bg-bgLight/95 backdrop-blur border-b px-4 py-4 flex items-center gap-3">
+    <a href="index.php"
+       class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
+        <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+    <h1 class="text-xl font-bold">Produktverwaltung</h1>
 </header>
 
-<!-- Produktliste -->
-<main class="flex flex-col px-4 mt-4 gap-3">
+<!-- CONTENT -->
+<div class="px-4 mt-6 space-y-6">
 
-<?php if (empty($products)): ?>
+<!-- MESSAGE -->
+<?php if ($message): ?>
+    <div class="bg-green-50 text-green-700 p-3 rounded-lg text-sm">
+        <?php echo htmlspecialchars($message); ?>
+    </div>
+<?php endif; ?>
 
-    <p class="text-gray-500">Keine Produkte vorhanden.</p>
+<!-- NEUES PRODUKT -->
+<div class="bg-surface rounded-xl p-4 shadow-sm">
+    <h2 class="text-lg font-bold mb-4">Neues Produkt</h2>
 
-<?php else: ?>
+    <form method="post" class="space-y-4">
 
-<?php foreach ($products as $product): ?>
+        <label class="block">
+            <span class="text-sm font-medium">Produktname</span>
+            <input type="text" name="name" required class="w-full h-12 rounded-lg border p-3">
+        </label>
 
-    <div class="flex items-center gap-4 bg-white p-3 rounded-xl shadow-sm border">
+        <label class="block">
+            <span class="text-sm font-medium">Preis (€)</span>
+            <input type="number" step="0.01" name="price" required class="w-full h-12 rounded-lg border p-3">
+        </label>
 
-        <!-- Bild -->
-        <div class="shrink-0">
-            <div class="size-16 rounded-lg bg-gray-100 bg-cover bg-center"
-                 style="background-image: url('<?php echo htmlspecialchars($product["image"] ?? ""); ?>');">
+        <label class="block">
+            <span class="text-sm font-medium">Kategorie</span>
+            <select name="category_id" required class="w-full h-12 rounded-lg border p-3">
+                <option value="">Bitte wählen</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?php echo $cat["id"]; ?>">
+                        <?php echo htmlspecialchars($cat["name"]); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+
+        <label class="block">
+            <span class="text-sm font-medium">Beschreibung</span>
+            <textarea name="description" rows="3" required class="w-full rounded-lg border p-3"></textarea>
+        </label>
+
+        <button type="submit"
+                class="w-full h-12 bg-primary font-bold rounded-lg text-[#102216]">
+            Produkt anlegen
+        </button>
+    </form>
+</div>
+
+<!-- PRODUKTLISTE -->
+<div class="space-y-3">
+    <h2 class="text-lg font-bold px-1">Produkte</h2>
+
+    <?php if (empty($products)): ?>
+        <p class="text-gray-500 text-sm">Keine Produkte vorhanden.</p>
+    <?php endif; ?>
+
+    <?php foreach ($products as $product): ?>
+        <div class="bg-surface rounded-xl p-4 shadow-sm flex justify-between items-center">
+            <div class="min-w-0">
+                <p class="font-semibold truncate">
+                    <?php echo htmlspecialchars($product["name"]); ?>
+                </p>
+                <p class="text-xs text-gray-500">
+                    <?php echo htmlspecialchars($product["category"] ?? "—"); ?>
+                </p>
+                <p class="text-sm font-bold mt-1">
+                    <?php echo number_format($product["price"], 2, ",", "."); ?> €
+                </p>
             </div>
-        </div>
 
-        <!-- Infos -->
-        <div class="flex flex-col flex-1 min-w-0">
-            <p class="text-base font-semibold truncate">
-                <?php echo htmlspecialchars($product["name"]); ?>
-            </p>
-            <p class="text-sm text-gray-500">
-                <?php echo number_format($product["price"], 2, ",", "."); ?> €
-            </p>
-        </div>
-
-        <!-- Aktionen (später Edit/Delete) -->
-        <div>
             <a href="product_edit.php?id=<?php echo $product["id"]; ?>"
-               class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100">
+               class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
                 <span class="material-symbols-outlined">edit</span>
             </a>
         </div>
+    <?php endforeach; ?>
+</div>
 
-    </div>
-
-<?php endforeach; ?>
-
-<?php endif; ?>
-
-</main>
-
+</div>
 </div>
 
 </body>
