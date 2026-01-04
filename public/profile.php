@@ -10,7 +10,7 @@ require_once "../includes/db.php";
 
 $userId = $_SESSION["user_id"];
 
-/* USER DATEN LADEN */
+/* USER DATEN */
 $stmt = $pdo->prepare("
     SELECT email, role
     FROM users
@@ -30,11 +30,16 @@ $stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ?");
 $stmt->execute([$userId]);
 $orderCount = (int)$stmt->fetchColumn();
 
+/* FAVORITEN ZÄHLEN */
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM favorites WHERE user_id = ?");
+$stmt->execute([$userId]);
+$favoritesCount = (int)$stmt->fetchColumn();
+
 $email = $user["email"];
 $role  = $user["role"];
 ?>
 <!DOCTYPE html>
-<html lang="de">
+<html class="light" lang="de">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -82,9 +87,15 @@ body { min-height: max(884px, 100dvh); }
 
 <!-- AVATAR -->
 <div class="flex flex-col items-center pt-8">
-    <div class="h-28 w-28 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl">
-        👤
+    <div class="relative">
+        <div class="h-28 w-28 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-4xl">
+            👤
+        </div>
+        <span class="absolute bottom-1 right-1 bg-primary rounded-full p-1.5 border-2 border-white">
+            <span class="material-symbols-outlined text-white text-sm">edit</span>
+        </span>
     </div>
+
     <h2 class="mt-4 text-2xl font-bold">
         <?php echo $role === "admin" ? "Administrator" : "Benutzer"; ?>
     </h2>
@@ -95,20 +106,26 @@ body { min-height: max(884px, 100dvh); }
 
 <!-- STATS -->
 <div class="grid grid-cols-2 gap-4 px-4 mt-8">
-    <div class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl text-center shadow-sm border border-border-light dark:border-border-dark">
+
+    <!-- Bestellungen -->
+    <a href="/webshop/public/my_orders.php"
+       class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl text-center shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary mb-1">shopping_bag</span>
         <p class="text-2xl font-bold"><?php echo $orderCount; ?></p>
         <p class="text-xs text-gray-500">Bestellungen</p>
-    </div>
+    </a>
 
-    <div class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl text-center shadow-sm border border-border-light dark:border-border-dark">
+    <!-- Favoriten -->
+    <a href="/webshop/public/favorites.php"
+       class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl text-center shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary mb-1">favorite</span>
-        <p class="text-2xl font-bold">0</p>
+        <p class="text-2xl font-bold"><?php echo $favoritesCount; ?></p>
         <p class="text-xs text-gray-500">Favoriten</p>
-    </div>
+    </a>
+
 </div>
 
-<!-- ACTION LIST -->
+<!-- ACTIONS -->
 <div class="px-4 mt-8 space-y-3">
 
     <a href="/webshop/public/profile_edit.php"
@@ -127,12 +144,6 @@ body { min-height: max(884px, 100dvh); }
        class="flex items-center gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary">credit_card</span>
         <span class="font-medium">Zahlungsmethoden</span>
-    </a>
-
-    <a href="/webshop/public/my_orders.php"
-       class="flex items-center gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark">
-        <span class="material-symbols-outlined text-primary">receipt_long</span>
-        <span class="font-medium">Meine Bestellungen</span>
     </a>
 
     <?php if ($role === "admin"): ?>

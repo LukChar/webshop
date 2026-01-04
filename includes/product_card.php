@@ -1,16 +1,46 @@
 <?php
-/*
-Erwartete Variablen:
-$productId
-$productName
-$productPrice
-$productImage
-$productOldPrice (optional)
-*/
-?>
-<div class="group flex flex-col bg-white dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+/* Favoritenstatus prüfen */
+$isFavorite = false;
 
-    <!-- Ganze Karte klickbar (zur Produktseite) -->
+if (isset($_SESSION["user_id"])) {
+    $stmt = $pdo->prepare("
+        SELECT 1
+        FROM favorites
+        WHERE user_id = ? AND product_id = ?
+    ");
+    $stmt->execute([$_SESSION["user_id"], $productId]);
+    $isFavorite = (bool)$stmt->fetch();
+}
+?>
+
+<div class="group relative flex flex-col bg-white dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+
+    <!-- Favoriten-Button -->
+    <?php if (isset($_SESSION["user_id"])): ?>
+        <form
+            method="post"
+            action="/webshop/public/favorite_toggle.php"
+            class="absolute top-2 right-2 z-10"
+            onclick="event.stopPropagation();"
+        >
+            <input type="hidden" name="product_id" value="<?php echo (int)$productId; ?>">
+
+            <button
+                type="submit"
+                class="flex items-center justify-center rounded-full p-1.5 shadow
+                <?php echo $isFavorite
+                    ? 'bg-primary text-black'
+                    : 'bg-white text-gray-400 hover:text-red-500'; ?>"
+                onclick="event.stopPropagation();"
+            >
+                <span class="material-symbols-outlined" style="font-size:20px;">
+                    favorite
+                </span>
+            </button>
+        </form>
+    <?php endif; ?>
+
+    <!-- Ganze Karte klickbar -->
     <a href="product.php?id=<?php echo urlencode($productId); ?>" class="block">
         <div class="relative aspect-[4/3] w-full overflow-hidden">
             <img
@@ -39,7 +69,7 @@ $productOldPrice (optional)
                     </span>
                 </div>
 
-                <!-- Add to Cart: eigener Bereich, klickt NICHT auf Produktseite -->
+                <!-- Add to Cart -->
                 <form method="post" action="cart_add.php" onclick="event.stopPropagation();">
                     <input type="hidden" name="product_id" value="<?php echo (int)$productId; ?>">
                     <button

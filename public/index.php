@@ -1,11 +1,25 @@
 <?php
 session_start();
+require_once "../includes/db.php";
+
+/* Favoriten des Users laden */
+$favorites = [];
+
+if (isset($_SESSION["user_id"])) {
+    $stmt = $pdo->prepare("
+        SELECT product_id
+        FROM favorites
+        WHERE user_id = ?
+    ");
+    $stmt->execute([$_SESSION["user_id"]]);
+    $favorites = $stmt->fetchAll(PDO::FETCH_COLUMN);
+}
 ?>
 <!DOCTYPE html>
 <html class="light" lang="de">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>CampusShop – Produktübersicht</title>
 
     <!-- Fonts -->
@@ -65,8 +79,6 @@ session_start();
 </div>
 
 <?php
-require_once "../includes/db.php";
-
 /* Produkte laden */
 $stmt = $pdo->query("
     SELECT id, name, price, image
@@ -87,15 +99,14 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <?php foreach ($products as $product): ?>
 
                 <?php
-                // Werte für die Card
                 $productId       = (int)$product["id"];
                 $productName     = $product["name"];
                 $productPrice    = (float)$product["price"];
                 $productOldPrice = null;
                 $productImage    = $product["image"];
 
-                // WICHTIG: richtiger Link zur Produktseite (relativ zu /public)
-                $productHref = "product.php?id=" . urlencode($productId);
+                /* Favorit prüfen */
+                $isFavorite = in_array($productId, $favorites, true);
 
                 require "../includes/product_card.php";
                 ?>
