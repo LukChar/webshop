@@ -108,7 +108,7 @@ body { min-height: max(884px, 100dvh); }
     </div>
 </div>
 
-<!-- ACTIONS -->
+<!-- ACTION LIST -->
 <div class="px-4 mt-8 space-y-3">
 
     <a href="/webshop/public/profile_edit.php"
@@ -134,6 +134,14 @@ body { min-height: max(884px, 100dvh); }
         <span class="material-symbols-outlined text-primary">receipt_long</span>
         <span class="font-medium">Meine Bestellungen</span>
     </a>
+
+    <?php if ($role === "admin"): ?>
+        <a href="/webshop/admin/index.php"
+           class="flex items-center gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark">
+            <span class="material-symbols-outlined text-primary">dashboard</span>
+            <span class="font-medium">Admin Dashboard</span>
+        </a>
+    <?php endif; ?>
 
     <a href="/webshop/auth/logout.php"
        class="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-2xl shadow-sm">
