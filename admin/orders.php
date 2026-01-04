@@ -34,6 +34,7 @@ $orders = $stmt->fetchAll();
 
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap" rel="stylesheet"/>
 
 <script>
 tailwind.config = {
@@ -55,7 +56,15 @@ tailwind.config = {
 
 <div class="max-w-5xl mx-auto p-6">
 
-    <h1 class="text-2xl font-bold mb-6">Alle Bestellungen (Admin)</h1>
+    <!-- HEADER -->
+    <div class="flex items-center gap-3 mb-6">
+        <a href="index.php"
+           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-200 transition">
+            <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        </a>
+
+        <h1 class="text-2xl font-bold">Alle Bestellungen</h1>
+    </div>
 
     <?php if (empty($orders)): ?>
 

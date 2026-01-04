@@ -1,101 +1,153 @@
 <?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+session_start();
 require "../includes/admin_auth.php";
 require "../includes/db.php";
 
-/* ID prüfen */
-$productId = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
-if ($productId <= 0) {
-    die("Produkt nicht gefunden");
-}
+$productId = (int)($_GET["id"] ?? 0);
+$message = "";
 
 /* Produkt laden */
-$stmt = $pdo->prepare("SELECT * FROM products WHERE id = ?");
+$stmt = $pdo->prepare("
+    SELECT id, name, price, description, category_id
+    FROM products
+    WHERE id = ?
+");
 $stmt->execute([$productId]);
 $product = $stmt->fetch();
 
 if (!$product) {
-    die("Produkt nicht gefunden");
+    echo "Produkt nicht gefunden.";
+    exit;
 }
 
-/* Speichern */
+/* Kategorien laden */
+$stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC");
+$categories = $stmt->fetchAll();
+
+/* Produkt speichern */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $name = trim($_POST["name"]);
-    $price = $_POST["price"];
-    $description = trim($_POST["description"]);
 
-    $stmt = $pdo->prepare("
-        UPDATE products
-        SET name = ?, price = ?, description = ?
-        WHERE id = ?
-    ");
-    $stmt->execute([$name, $price, $description, $productId]);
+    $name = trim($_POST["name"] ?? "");
+    $price = $_POST["price"] ?? "";
+    $description = trim($_POST["description"] ?? "");
+    $categoryId = $_POST["category_id"] ?? "";
 
-    header("Location: products.php");
-    exit;
+    if ($name === "" || $price === "" || $description === "" || $categoryId === "") {
+        $message = "Bitte alle Felder ausfüllen.";
+    } else {
+        $stmt = $pdo->prepare("
+            UPDATE products
+            SET name = ?, price = ?, description = ?, category_id = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$name, $price, $description, $categoryId, $productId]);
+        $message = "Produkt erfolgreich aktualisiert.";
+    }
 }
 ?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Produkt bearbeiten</title>
+
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet">
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: "#13ec5b",
+                bgLight: "#f6f8f6",
+                bgDark: "#102216",
+                surface: "#ffffff"
+            },
+            fontFamily: {
+                display: ["Inter", "sans-serif"]
+            }
+        }
+    }
+}
+</script>
 </head>
 
-<body class="bg-gray-100 font-[Inter]">
+<body class="bg-bgLight font-display text-[#111813]">
 
-<div class="max-w-xl mx-auto p-6">
-    <h1 class="text-2xl font-bold mb-6">Produkt bearbeiten</h1>
+<div class="max-w-md mx-auto min-h-screen pb-24">
 
-    <form method="post" class="bg-white p-6 rounded-xl shadow-sm flex flex-col gap-4">
+<!-- HEADER -->
+<header class="sticky top-0 bg-bgLight/95 backdrop-blur border-b px-4 py-4 flex items-center gap-3">
+    <a href="products.php"
+       class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
+        <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+    <h1 class="text-xl font-bold">Produkt bearbeiten</h1>
+</header>
 
-        <label class="font-semibold">
-            Produktname
-            <input
-                type="text"
-                name="name"
-                value="<?php echo htmlspecialchars($product["name"]); ?>"
-                class="w-full border rounded-lg p-3 mt-1"
-                required
-            >
+<!-- CONTENT -->
+<div class="px-4 mt-6 space-y-6">
+
+<?php if ($message): ?>
+    <div class="bg-green-50 text-green-700 p-3 rounded-lg text-sm">
+        <?php echo htmlspecialchars($message); ?>
+    </div>
+<?php endif; ?>
+
+<div class="bg-surface rounded-xl p-4 shadow-sm">
+    <form method="post" class="space-y-4">
+
+        <label class="block">
+            <span class="text-sm font-medium">Produktname</span>
+            <input type="text" name="name" required
+                   value="<?php echo htmlspecialchars($product["name"]); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
         </label>
 
-        <label class="font-semibold">
-            Preis (€)
-            <input
-                type="number"
-                step="0.01"
-                name="price"
-                value="<?php echo htmlspecialchars($product["price"]); ?>"
-                class="w-full border rounded-lg p-3 mt-1"
-                required
-            >
+        <label class="block">
+            <span class="text-sm font-medium">Preis (€)</span>
+            <input type="number" step="0.01" name="price" required
+                   value="<?php echo htmlspecialchars($product["price"]); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
         </label>
 
-        <label class="font-semibold">
-            Beschreibung
-            <textarea
-                name="description"
-                class="w-full border rounded-lg p-3 mt-1 h-32"
-                required
-            ><?php echo htmlspecialchars($product["description"]); ?></textarea>
+        <label class="block">
+            <span class="text-sm font-medium">Kategorie</span>
+            <select name="category_id" required class="w-full h-12 rounded-lg border p-3">
+                <option value="">Bitte wählen</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?php echo $cat["id"]; ?>"
+                        <?php if ($cat["id"] == $product["category_id"]) echo "selected"; ?>>
+                        <?php echo htmlspecialchars($cat["name"]); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
         </label>
 
-        <div class="flex gap-3 mt-4">
-            <a href="products.php"
-               class="flex-1 text-center border rounded-lg p-3 font-semibold">
-                Abbrechen
-            </a>
+        <label class="block">
+            <span class="text-sm font-medium">Beschreibung</span>
+            <textarea name="description" rows="4" required
+                      class="w-full rounded-lg border p-3"><?php
+                echo htmlspecialchars($product["description"]);
+            ?></textarea>
+        </label>
 
-            <button
-                type="submit"
-                class="flex-1 bg-[#13ec5b] rounded-lg p-3 font-bold">
-                Speichern
-            </button>
-        </div>
+        <button type="submit"
+                class="w-full h-12 bg-primary font-bold rounded-lg text-[#102216]">
+            Änderungen speichern
+        </button>
 
     </form>
+</div>
+
+</div>
 </div>
 
 </body>

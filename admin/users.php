@@ -59,102 +59,122 @@ $users = $stmt->fetchAll();
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Benutzerverwaltung</title>
+<title>Admin – Benutzerverwaltung</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-    body {
-        font-family: Arial, sans-serif;
-        background: #f6f8f6;
-        padding: 20px;
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400&display=swap" rel="stylesheet"/>
+
+<script>
+tailwind.config = {
+    theme: {
+        extend: {
+            colors: {
+                primary: "#13ec5b"
+            },
+            fontFamily: {
+                display: ["Inter", "sans-serif"]
+            }
+        }
     }
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background: #ffffff;
-    }
-    th, td {
-        padding: 10px;
-        border-bottom: 1px solid #ddd;
-        text-align: left;
-    }
-    th {
-        background: #eeeeee;
-    }
-    .inactive {
-        color: red;
-        font-weight: bold;
-    }
-    .active {
-        color: green;
-        font-weight: bold;
-    }
-    .actions a {
-        margin-right: 10px;
-        text-decoration: none;
-        font-weight: bold;
-    }
-</style>
+}
+</script>
 </head>
 
-<body>
+<body class="bg-gray-100 font-display">
 
-<h1>Benutzerverwaltung</h1>
+<div class="max-w-5xl mx-auto p-6">
 
-<table>
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>E-Mail</th>
-            <th>Rolle</th>
-            <th>Status</th>
-            <th>Aktionen</th>
-        </tr>
-    </thead>
-    <tbody>
+    <!-- HEADER -->
+    <div class="flex items-center gap-3 mb-6">
+        <a href="index.php"
+           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-200 transition">
+            <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        </a>
+
+        <h1 class="text-2xl font-bold">Benutzerverwaltung</h1>
+    </div>
 
     <?php if (empty($users)): ?>
-        <tr>
-            <td colspan="5">Keine Benutzer gefunden.</td>
-        </tr>
+
+        <p class="text-gray-500">Keine Benutzer gefunden.</p>
+
     <?php else: ?>
-        <?php foreach ($users as $user): ?>
-            <tr>
-                <td><?php echo $user["id"]; ?></td>
-                <td><?php echo htmlspecialchars($user["email"]); ?></td>
-                <td><?php echo htmlspecialchars($user["role"]); ?></td>
-                <td>
-                    <?php if ((int)$user["active"] === 1): ?>
-                        <span class="active">aktiv</span>
-                    <?php else: ?>
-                        <span class="inactive">gesperrt</span>
-                    <?php endif; ?>
-                </td>
-                <td class="actions">
-                    <?php if ($user["id"] !== $_SESSION["user_id"]): ?>
 
-                        <a href="?action=toggle_active&id=<?php echo $user["id"]; ?>">
-                            <?php echo $user["active"] ? "Sperren" : "Aktivieren"; ?>
-                        </a>
+        <div class="overflow-x-auto bg-white rounded-xl shadow-sm border">
 
-                        <a href="?action=toggle_role&id=<?php echo $user["id"]; ?>">
-                            Rolle ändern
-                        </a>
+            <table class="w-full border-collapse">
+                <thead class="bg-gray-50 text-left text-sm">
+                    <tr>
+                        <th class="p-3">ID</th>
+                        <th class="p-3">E-Mail</th>
+                        <th class="p-3">Rolle</th>
+                        <th class="p-3">Status</th>
+                        <th class="p-3">Aktionen</th>
+                    </tr>
+                </thead>
+                <tbody>
 
-                    <?php else: ?>
-                        <em>Eigener Account</em>
-                    <?php endif; ?>
-                </td>
-            </tr>
-        <?php endforeach; ?>
+                <?php foreach ($users as $user): ?>
+
+                    <tr class="border-t hover:bg-gray-50">
+                        <td class="p-3 font-medium">
+                            <?php echo $user["id"]; ?>
+                        </td>
+
+                        <td class="p-3">
+                            <?php echo htmlspecialchars($user["email"]); ?>
+                        </td>
+
+                        <td class="p-3">
+                            <span class="inline-block_toggle
+                                <?php echo $user["role"] === "admin"
+                                    ? "text-purple-600 font-semibold"
+                                    : "text-gray-700"; ?>">
+                                <?php echo htmlspecialchars($user["role"]); ?>
+                            </span>
+                        </td>
+
+                        <td class="p-3">
+                            <?php if ((int)$user["active"] === 1): ?>
+                                <span class="text-green-600 font-semibold">aktiv</span>
+                            <?php else: ?>
+                                <span class="text-red-600 font-semibold">gesperrt</span>
+                            <?php endif; ?>
+                        </td>
+
+                        <td class="p-3 space-x-3">
+                            <?php if ($user["id"] !== $_SESSION["user_id"]): ?>
+
+                                <a href="?action=toggle_active&id=<?php echo $user["id"]; ?>"
+                                   class="text-sm font-medium text-primary hover:underline">
+                                    <?php echo $user["active"] ? "Sperren" : "Aktivieren"; ?>
+                                </a>
+
+                                <a href="?action=toggle_role&id=<?php echo $user["id"]; ?>"
+                                   class="text-sm font-medium text-gray-700 hover:underline">
+                                    Rolle ändern
+                                </a>
+
+                            <?php else: ?>
+                                <span class="text-xs text-gray-400 italic">
+                                    Eigener Account
+                                </span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+
+                <?php endforeach; ?>
+
+                </tbody>
+            </table>
+
+        </div>
+
     <?php endif; ?>
 
-    </tbody>
-</table>
-
-<p style="margin-top: 20px;">
-    <a href="index.php">← Zurück zum Admin Dashboard</a>
-</p>
+</div>
 
 </body>
 </html>
