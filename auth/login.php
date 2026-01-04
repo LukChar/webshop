@@ -9,6 +9,11 @@ require_once "../includes/db.php";
 $error = "";
 $email = "";
 
+/* Fehler auch über GET anzeigen (Google Callback) */
+if (isset($_GET["err"]) && $_GET["err"] !== "") {
+    $error = trim((string)$_GET["err"]);
+}
+
 /* Login verarbeiten */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
