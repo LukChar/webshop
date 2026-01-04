@@ -12,7 +12,8 @@ if (!isset($_SESSION["user_id"])) {
     exit;
 }
 
-$userId = $_SESSION["user_id"];
+$userId  = $_SESSION["user_id"];
+$role    = $_SESSION["role"] ?? "user";
 $orderId = (int)($_GET["id"] ?? 0);
 
 if ($orderId <= 0) {
@@ -20,14 +21,30 @@ if ($orderId <= 0) {
     exit;
 }
 
-/* Bestellung prüfen (gehört sie dem User?) */
-$stmt = $pdo->prepare("
-    SELECT id, total, created_at
-    FROM orders
-    WHERE id = ? AND user_id = ?
-    LIMIT 1
-");
-$stmt->execute([$orderId, $userId]);
+/* Bestellung laden */
+if ($role === "admin") {
+
+    // ADMIN: darf alle Bestellungen sehen
+    $stmt = $pdo->prepare("
+        SELECT id, user_id, total, created_at
+        FROM orders
+        WHERE id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$orderId]);
+
+} else {
+
+    // USER: darf nur eigene Bestellungen sehen
+    $stmt = $pdo->prepare("
+        SELECT id, user_id, total, created_at
+        FROM orders
+        WHERE id = ? AND user_id = ?
+        LIMIT 1
+    ");
+    $stmt->execute([$orderId, $userId]);
+}
+
 $order = $stmt->fetch();
 
 if (!$order) {
@@ -56,15 +73,11 @@ $items = $stmt->fetchAll();
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Bestellung #<?php echo $order["id"]; ?></title>
 
-<!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet"/>
-
-<!-- Icons -->
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
 
-<!-- Tailwind -->
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
 <script>
@@ -94,7 +107,7 @@ body { min-height: max(884px, 100dvh); }
 <!-- Top Bar -->
 <div class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
     <div class="flex items-center px-4 py-3 justify-between max-w-md mx-auto">
-        <a href="my_orders.php"
+        <a href="<?php echo $role === 'admin' ? '../admin/orders.php' : 'my_orders.php'; ?>"
            class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
@@ -141,7 +154,6 @@ body { min-height: max(884px, 100dvh); }
 
     <?php endforeach; ?>
 
-    <!-- Summary -->
     <div class="bg-white rounded-xl p-4 shadow-sm border mt-2">
         <div class="flex justify-between font-bold text-lg">
             <span>Gesamt</span>

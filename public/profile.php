@@ -5,6 +5,7 @@ error_reporting(E_ALL);
 
 session_start();
 
+/* Login erforderlich */
 if (!isset($_SESSION["user_id"])) {
     header("Location: /webshop/auth/login.php");
     exit;
@@ -19,7 +20,7 @@ $error = "";
 /* PROFIL AKTUALISIEREN */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
-    $newEmail = trim($_POST["email"] ?? "");
+    $newEmail    = trim($_POST["email"] ?? "");
     $newPassword = $_POST["password"] ?? "";
 
     if ($newEmail === "") {
@@ -49,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-/* USER DATEN LADEN */
+/* USER-DATEN LADEN */
 $stmt = $pdo->prepare("
     SELECT email, role
     FROM users
@@ -65,7 +66,11 @@ if (!$user) {
 }
 
 /* BESTELLUNGEN ZÄHLEN */
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM orders WHERE user_id = ?");
+$stmt = $pdo->prepare("
+    SELECT COUNT(*)
+    FROM orders
+    WHERE user_id = ?
+");
 $stmt->execute([$userId]);
 $orderCount = (int)$stmt->fetchColumn();
 
@@ -123,7 +128,9 @@ body { min-height: max(884px, 100dvh); }
        class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
         <span class="material-symbols-outlined">arrow_back</span>
     </a>
+
     <h1 class="text-lg font-bold">Mein Profil</h1>
+
     <div class="size-10"></div>
 </header>
 
@@ -134,9 +141,11 @@ body { min-height: max(884px, 100dvh); }
     <div class="bg-gray-200 dark:bg-gray-700 rounded-full h-28 w-28 flex items-center justify-center text-4xl font-bold">
         👤
     </div>
+
     <h2 class="mt-4 text-2xl font-bold">
         <?php echo $role === "admin" ? "Administrator" : "Benutzer"; ?>
     </h2>
+
     <p class="text-sm text-gray-500">
         <?php echo htmlspecialchars($email); ?>
     </p>
@@ -162,30 +171,38 @@ body { min-height: max(884px, 100dvh); }
     <h3 class="text-lg font-bold mb-3">Profil bearbeiten</h3>
 
     <?php if ($message): ?>
-        <p class="text-green-600 text-sm mb-2"><?php echo $message; ?></p>
+        <p class="text-green-600 text-sm mb-2"><?php echo htmlspecialchars($message); ?></p>
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <p class="text-red-600 text-sm mb-2"><?php echo $error; ?></p>
+        <p class="text-red-600 text-sm mb-2"><?php echo htmlspecialchars($error); ?></p>
     <?php endif; ?>
 
     <form method="post" class="space-y-4">
         <label class="block">
             <span class="text-sm font-medium">E-Mail</span>
-            <input type="email" name="email" required
-                   value="<?php echo htmlspecialchars($email); ?>"
-                   class="w-full h-12 rounded-lg border p-3">
+            <input
+                type="email"
+                name="email"
+                required
+                value="<?php echo htmlspecialchars($email); ?>"
+                class="w-full h-12 rounded-lg border p-3"
+            >
         </label>
 
         <label class="block">
             <span class="text-sm font-medium">Neues Passwort (optional)</span>
-            <input type="password" name="password"
-                   class="w-full h-12 rounded-lg border p-3"
-                   placeholder="Mindestens 6 Zeichen">
+            <input
+                type="password"
+                name="password"
+                class="w-full h-12 rounded-lg border p-3"
+                placeholder="Mindestens 6 Zeichen"
+            >
         </label>
 
-        <button type="submit"
-                class="w-full h-12 rounded-lg bg-primary font-bold text-[#102216]">
+        <button
+            type="submit"
+            class="w-full h-12 rounded-lg bg-primary font-bold text-[#102216]">
             Änderungen speichern
         </button>
     </form>
