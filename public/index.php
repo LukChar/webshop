@@ -41,9 +41,7 @@ session_start();
     </script>
 
     <style>
-        body {
-            min-height: max(884px, 100dvh);
-        }
+        body { min-height: max(884px, 100dvh); }
     </style>
 </head>
 
@@ -74,7 +72,7 @@ $stmt = $pdo->query("
     SELECT id, name, price, image
     FROM products
 ");
-$products = $stmt->fetchAll();
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <?php if (empty($products)): ?>
@@ -89,14 +87,18 @@ $products = $stmt->fetchAll();
             <?php foreach ($products as $product): ?>
 
                 <?php
-                $productId = $product["id"];
-                $productName = $product["name"];
-                $productPrice = $product["price"];
+                // Werte für die Card
+                $productId       = (int)$product["id"];
+                $productName     = $product["name"];
+                $productPrice    = (float)$product["price"];
                 $productOldPrice = null;
-                $productImage = $product["image"];
-                ?>
+                $productImage    = $product["image"];
 
-                <?php require "../includes/product_card.php"; ?>
+                // WICHTIG: richtiger Link zur Produktseite (relativ zu /public)
+                $productHref = "product.php?id=" . urlencode($productId);
+
+                require "../includes/product_card.php";
+                ?>
 
             <?php endforeach; ?>
 

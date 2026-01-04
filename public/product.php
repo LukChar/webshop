@@ -17,7 +17,7 @@ $stmt = $pdo->prepare("
     LIMIT 1
 ");
 $stmt->execute([$productId]);
-$product = $stmt->fetch();
+$product = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$product) {
     echo "Produkt nicht gefunden.";
@@ -29,61 +29,126 @@ $cartCount = 0;
 if (isset($_SESSION["cart"])) {
     $cartCount = array_sum($_SESSION["cart"]);
 }
+
+/* Bewertungen laden (optional) */
+$stmt = $pdo->prepare("
+    SELECT AVG(rating) AS avg_rating, COUNT(*) AS cnt
+    FROM reviews
+    WHERE product_id = ?
+");
+$stmt->execute([$productId]);
+$ratingInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+$avgRating = $ratingInfo && $ratingInfo["cnt"] > 0 ? (float)$ratingInfo["avg_rating"] : null;
+$reviewCount = $ratingInfo ? (int)$ratingInfo["cnt"] : 0;
+
+/* Letzte Reviews (optional) */
+$reviews = [];
+if ($reviewCount > 0) {
+    $stmt = $pdo->prepare("
+        SELECT r.rating, r.text, r.created_at, u.email
+        FROM reviews r
+        JOIN users u ON u.id = r.user_id
+        WHERE r.product_id = ?
+        ORDER BY r.created_at DESC
+        LIMIT 2
+    ");
+    $stmt->execute([$productId]);
+    $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/* Hilfsfunktionen */
+function formatStars($avg) {
+    // avg z.B. 4.3 -> 4 volle Sterne + 1 halb (wenn >= .25) sonst leer
+    $full = (int)floor($avg);
+    $frac = $avg - $full;
+    $half = ($frac >= 0.25 && $frac < 0.75) ? 1 : 0;
+    $full = ($frac >= 0.75) ? $full + 1 : $full;
+    $empty = 5 - $full - $half;
+    return [$full, $half, $empty];
+}
+
+function shortNameFromEmail($email) {
+    $name = strstr($email, '@', true);
+    if (!$name) return "User";
+    return ucfirst(substr($name, 0, 1)) . strtolower(substr($name, 1, 1)) . ".";
+}
 ?>
 <!DOCTYPE html>
 <html class="light" lang="de">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title><?php echo htmlspecialchars($product["name"]); ?></title>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title><?php echo htmlspecialchars($product["name"]); ?></title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <!-- Google Fonts & Material Symbols -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet"/>
 
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 
-<script>
-tailwind.config = {
-    darkMode: "class",
-    theme: {
-        extend: {
-            colors: {
-                primary: "#13ec5b",
-                "background-light": "#f6f8f6",
-                "background-dark": "#102216",
-                "surface-light": "#ffffff",
-                "surface-dark": "#1c2e22",
+    <!-- Theme Configuration -->
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#1c2e22",
+                    },
+                    fontFamily: {
+                        display: ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
             },
-            fontFamily: {
-                display: ["Inter", "sans-serif"]
-            }
         }
-    }
-}
-</script>
+    </script>
 
-<style>
-body { min-height: max(884px, 100dvh); }
-</style>
+    <style>
+        body { min-height: max(884px, 100dvh); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark text-[#111813] dark:text-white font-display pb-32">
+<body class="bg-background-light dark:bg-background-dark text-[#111813] dark:text-white font-display pb-32 overflow-x-hidden transition-colors duration-200">
 
-<!-- Header -->
-<div class="sticky top-0 z-50 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+<!-- Sticky Header -->
+<div class="sticky top-0 z-50 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-colors">
     <div class="flex items-center p-4 justify-between h-16">
 
         <a href="index.php"
-           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-            <span class="material-symbols-outlined">arrow_back</span>
+           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">
+                arrow_back_ios_new
+            </span>
         </a>
 
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
+            <!-- optional share icon (nur optisch) -->
+            <button type="button"
+                    class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onclick="navigator.clipboard?.writeText(window.location.href)">
+                <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">share</span>
+            </button>
+
             <a href="cart.php"
-               class="relative flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
-                <span class="material-symbols-outlined">shopping_cart</span>
+               class="relative flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">shopping_cart</span>
 
                 <?php if ($cartCount > 0): ?>
                     <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black">
@@ -96,49 +161,244 @@ body { min-height: max(884px, 100dvh); }
     </div>
 </div>
 
-<!-- Produktbild -->
-<div class="w-full aspect-[4/5] bg-gray-200">
-    <div class="w-full h-full bg-center bg-cover"
-         style="background-image: url('<?php echo htmlspecialchars($product["image"]); ?>');">
+<!-- Product Image (wie dein Template, nur 1 Bild) -->
+<div class="relative w-full bg-surface-light dark:bg-surface-dark mb-4">
+    <div class="flex w-full overflow-x-auto snap-x snap-mandatory no-scrollbar aspect-[4/5] md:aspect-video">
+        <div class="snap-center shrink-0 w-full h-full bg-gray-200 relative">
+            <div class="w-full h-full bg-center bg-cover bg-no-repeat"
+                 style='background-image: url("<?php echo htmlspecialchars($product["image"]); ?>");'>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Dots (nur 1) -->
+    <div class="absolute bottom-4 left-0 right-0 flex justify-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-primary shadow-sm"></div>
     </div>
 </div>
 
-<!-- Content -->
-<div class="px-5 flex flex-col gap-6 mt-6">
+<!-- Main Content Container -->
+<div class="px-5 flex flex-col gap-6">
 
+    <!-- Header Info -->
     <div class="flex flex-col gap-2">
-        <h1 class="text-[28px] font-bold leading-tight">
-            <?php echo htmlspecialchars($product["name"]); ?>
-        </h1>
+        <div class="flex justify-between items-start">
+            <h1 class="text-[#111813] dark:text-white text-[28px] font-bold leading-tight tracking-tight">
+                <?php echo htmlspecialchars($product["name"]); ?>
+            </h1>
+        </div>
 
-        <span class="text-4xl font-black">
-            <?php echo number_format($product["price"], 2, ",", "."); ?> €
-        </span>
+        <?php if ($avgRating !== null): ?>
+            <?php [$full, $half, $empty] = formatStars($avgRating); ?>
+            <div class="flex items-center gap-2">
+                <div class="flex text-yellow-500">
+                    <?php for ($i=0; $i<$full; $i++): ?>
+                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                    <?php endfor; ?>
+                    <?php if ($half === 1): ?>
+                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+                    <?php endif; ?>
+                    <?php for ($i=0; $i<$empty; $i++): ?>
+                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1; opacity: 0.25;">star</span>
+                    <?php endfor; ?>
+                </div>
+                <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                    <?php echo number_format($avgRating, 1, ",", "."); ?> (<?php echo $reviewCount; ?> Bewertungen)
+                </span>
+            </div>
+        <?php else: ?>
+            <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                Noch keine Bewertungen
+            </div>
+        <?php endif; ?>
     </div>
 
-    <div class="h-px bg-gray-200 dark:bg-gray-800"></div>
+    <!-- Student Price Card (wie im Template) -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-surface-light dark:bg-surface-dark p-5 shadow-sm">
+        <div class="flex flex-col gap-3">
 
+            <div class="flex items-center justify-between">
+                <h2 class="text-[#111813] dark:text-white text-sm font-bold uppercase tracking-wider opacity-70">
+                    Preis
+                </h2>
+            </div>
+
+            <div class="flex items-baseline gap-3">
+                <span class="text-[#111813] dark:text-white text-4xl font-black tracking-tight">
+                    <?php echo number_format((float)$product["price"], 2, ",", "."); ?> €
+                </span>
+            </div>
+
+            <div class="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
+
+            <div class="flex flex-col gap-2">
+                <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
+                    <span class="material-symbols-outlined text-primary" style="font-size: 20px;">check_circle</span>
+                    Schneller Checkout
+                </div>
+                <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
+                    <span class="material-symbols-outlined text-primary" style="font-size: 20px;">check_circle</span>
+                    Sichere Zahlung
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Description -->
     <div class="flex flex-col gap-3">
-        <h3 class="text-lg font-bold">Beschreibung</h3>
-        <p class="text-gray-600 dark:text-gray-300 leading-relaxed">
-            <?php echo nl2br(htmlspecialchars($product["description"])); ?>
+        <h3 class="text-lg font-bold text-[#111813] dark:text-white">Beschreibung</h3>
+
+        <p class="text-gray-600 dark:text-gray-300 text-base leading-relaxed">
+            <?php echo nl2br(htmlspecialchars($product["description"] ?? "")); ?>
         </p>
     </div>
 
+    <!-- Divider -->
+    <div class="h-px w-full bg-gray-200 dark:bg-gray-800"></div>
+
+    <!-- Ratings & Reviews -->
+    <div class="flex flex-col gap-6">
+        <div class="flex items-center justify-between">
+            <h3 class="text-lg font-bold text-[#111813] dark:text-white">Bewertungen</h3>
+        </div>
+
+        <?php if ($avgRating !== null): ?>
+            <?php [$full, $half, $empty] = formatStars($avgRating); ?>
+
+            <!-- Rating Summary -->
+            <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+                <div class="flex flex-wrap items-center gap-x-8 gap-y-6">
+
+                    <div class="flex flex-col gap-1 items-center justify-center min-w-[80px]">
+                        <p class="text-[#111813] dark:text-white text-5xl font-black leading-none tracking-tight">
+                            <?php echo number_format($avgRating, 1, ",", "."); ?>
+                        </p>
+                        <div class="flex text-yellow-500 text-sm">
+                            <?php for ($i=0; $i<$full; $i++): ?>
+                                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                            <?php endfor; ?>
+                            <?php if ($half === 1): ?>
+                                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+                            <?php endif; ?>
+                            <?php for ($i=0; $i<$empty; $i++): ?>
+                                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1; opacity: 0.25;">star</span>
+                            <?php endfor; ?>
+                        </div>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                            <?php echo $reviewCount; ?> Bewertungen
+                        </p>
+                    </div>
+
+                    <!-- kleine Balken (statisch, weil wir keine Verteilung speichern) -->
+                    <div class="grid flex-1 grid-cols-[12px_1fr_30px] items-center gap-y-2 gap-x-3">
+                        <?php
+                        // Dummy-Verteilung: wir zeigen etwas plausibles, falls ihr das später exakt wollt -> eigene Query
+                        $dist = [70, 20, 5, 3, 2]; // 5..1
+                        for ($star=5, $i=0; $star>=1; $star--, $i++):
+                        ?>
+                            <p class="text-gray-600 dark:text-gray-400 text-xs font-medium"><?php echo $star; ?></p>
+                            <div class="flex h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                                <div class="rounded-full bg-primary" style="width: <?php echo $dist[$i]; ?>%;"></div>
+                            </div>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs text-right"><?php echo $dist[$i]; ?>%</p>
+                        <?php endfor; ?>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Reviews -->
+            <?php foreach ($reviews as $r): ?>
+                <div class="flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2">
+                            <div class="size-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-xs font-bold">
+                                <?php echo htmlspecialchars(strtoupper(substr($r["email"], 0, 1))); ?>
+                            </div>
+                            <span class="text-sm font-bold text-[#111813] dark:text-white">
+                                <?php echo htmlspecialchars(shortNameFromEmail($r["email"])); ?>
+                            </span>
+                        </div>
+                        <span class="text-xs text-gray-400">
+                            <?php echo htmlspecialchars(date("d.m.Y", strtotime($r["created_at"]))); ?>
+                        </span>
+                    </div>
+
+                    <div class="flex text-yellow-500 text-xs">
+                        <?php for ($i=0; $i<(int)$r["rating"]; $i++): ?>
+                            <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                        <?php endfor; ?>
+                        <?php for ($i=(int)$r["rating"]; $i<5; $i++): ?>
+                            <span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1; opacity: 0.25;">star</span>
+                        <?php endfor; ?>
+                    </div>
+
+                    <p class="text-sm text-gray-600 dark:text-gray-300">
+                        <?php echo htmlspecialchars($r["text"] ?? ""); ?>
+                    </p>
+                </div>
+            <?php endforeach; ?>
+
+        <?php else: ?>
+            <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">
+                Für dieses Produkt gibt es noch keine Bewertungen.
+            </div>
+        <?php endif; ?>
+
+    </div>
+
 </div>
 
-<!-- Bottom Bar -->
-<div class="fixed bottom-0 left-0 right-0 p-4 bg-surface-light dark:bg-surface-dark border-t border-gray-200 dark:border-gray-800 z-40">
-    <form action="cart_add.php" method="post" class="flex gap-4 max-w-2xl mx-auto">
-        <input type="hidden" name="product_id" value="<?php echo $product["id"]; ?>">
+<!-- Sticky Bottom Action Bar -->
+<div class="fixed bottom-0 left-0 right-0 p-4 bg-surface-light dark:bg-surface-dark border-t border-gray-200 dark:border-gray-800 z-40 pb-safe">
+    <form action="cart_add.php" method="post" class="flex gap-4 w-full max-w-2xl mx-auto">
+        <input type="hidden" name="product_id" value="<?php echo (int)$product["id"]; ?>">
+        <!-- optional: falls cart_add.php quantity unterstützt -->
+        <input type="hidden" name="quantity" id="qtyInput" value="1">
+
+        <!-- Quantity Stepper (optisch wie Template) -->
+        <div class="flex items-center bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 h-12">
+            <button type="button" id="qtyMinus" class="size-12 flex items-center justify-center text-gray-500 dark:text-gray-400 active:text-primary">
+                <span class="material-symbols-outlined">remove</span>
+            </button>
+            <span id="qtyText" class="w-8 text-center font-bold text-[#111813] dark:text-white">1</span>
+            <button type="button" id="qtyPlus" class="size-12 flex items-center justify-center text-gray-500 dark:text-gray-400 active:text-primary">
+                <span class="material-symbols-outlined">add</span>
+            </button>
+        </div>
 
         <button type="submit"
-                class="flex-1 bg-primary text-[#111813] font-bold text-base rounded-lg h-12 flex items-center justify-center gap-2 active:scale-[0.98]">
+                class="flex-1 bg-primary active:bg-[#0fd650] text-[#111813] font-bold text-base rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 h-12 transition-transform active:scale-[0.98]">
             <span class="material-symbols-outlined">shopping_bag</span>
             In den Warenkorb
         </button>
     </form>
+    <div class="h-1"></div>
 </div>
+
+<script>
+    // Stepper: nur UI + optional quantity POST
+    const qtyText = document.getElementById("qtyText");
+    const qtyInput = document.getElementById("qtyInput");
+    const minus = document.getElementById("qtyMinus");
+    const plus = document.getElementById("qtyPlus");
+
+    let qty = 1;
+    function render() {
+        qtyText.textContent = String(qty);
+        qtyInput.value = String(qty);
+    }
+    minus.addEventListener("click", () => {
+        qty = Math.max(1, qty - 1);
+        render();
+    });
+    plus.addEventListener("click", () => {
+        qty = Math.min(99, qty + 1);
+        render();
+    });
+    render();
+</script>
 
 </body>
 </html>
