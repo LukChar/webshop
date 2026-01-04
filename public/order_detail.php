@@ -12,51 +12,66 @@ if (!isset($_SESSION["user_id"])) {
     exit;
 }
 
-$userId  = $_SESSION["user_id"];
-$role    = $_SESSION["role"] ?? "user";
 $orderId = (int)($_GET["id"] ?? 0);
-
 if ($orderId <= 0) {
     echo "Ungültige Bestellung.";
     exit;
 }
 
-/* Bestellung laden */
-if ($role === "admin") {
+$isAdmin = ($_SESSION["role"] ?? "") === "admin";
 
-    // ADMIN: darf alle Bestellungen sehen
+/* Bestellung laden */
+if ($isAdmin) {
     $stmt = $pdo->prepare("
-        SELECT id, user_id, total, created_at
-        FROM orders
-        WHERE id = ?
+        SELECT o.*, u.email
+        FROM orders o
+        JOIN users u ON u.id = o.user_id
+        WHERE o.id = ?
         LIMIT 1
     ");
     $stmt->execute([$orderId]);
-
 } else {
-
-    // USER: darf nur eigene Bestellungen sehen
     $stmt = $pdo->prepare("
-        SELECT id, user_id, total, created_at
+        SELECT *
         FROM orders
         WHERE id = ? AND user_id = ?
         LIMIT 1
     ");
-    $stmt->execute([$orderId, $userId]);
+    $stmt->execute([$orderId, $_SESSION["user_id"]]);
 }
 
 $order = $stmt->fetch();
-
 if (!$order) {
     echo "Bestellung nicht gefunden.";
     exit;
 }
 
-/* Bestellpositionen laden */
+/* Lieferstatus ändern (Admin) */
+if ($isAdmin && $_SERVER["REQUEST_METHOD"] === "POST") {
+    $itemId = (int)($_POST["item_id"] ?? 0);
+    $status = $_POST["delivery_status"] ?? "";
+
+    $allowed = ["neu", "in_bearbeitung", "versendet", "zugestellt"];
+    if ($itemId > 0 && in_array($status, $allowed, true)) {
+        $stmt = $pdo->prepare("
+            UPDATE order_items
+            SET delivery_status = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([$status, $itemId]);
+    }
+
+    header("Location: order_detail.php?id=" . $orderId);
+    exit;
+}
+
+/* Bestellpositionen */
 $stmt = $pdo->prepare("
     SELECT 
+        oi.id,
         oi.quantity,
         oi.price,
+        oi.delivery_status,
         p.name,
         p.image
     FROM order_items oi
@@ -67,105 +82,100 @@ $stmt->execute([$orderId]);
 $items = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
-<html class="light" lang="de">
+<html lang="de">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Bestellung #<?php echo $order["id"]; ?></title>
 
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-
-<script>
-tailwind.config = {
-    theme: {
-        extend: {
-            colors: {
-                primary: "#13ec5b",
-                "background-light": "#f6f8f6",
-                "background-dark": "#102216",
-            },
-            fontFamily: {
-                display: ["Inter", "sans-serif"]
-            }
-        }
-    }
-}
-</script>
-
-<style>
-body { min-height: max(884px, 100dvh); }
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 </head>
 
-<body class="bg-background-light font-display text-slate-900 antialiased pb-24">
+<body class="bg-[#f6f8f6] font-display pb-28">
 
-<!-- Top Bar -->
-<div class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b">
-    <div class="flex items-center px-4 py-3 justify-between max-w-md mx-auto">
-        <a href="<?php echo $role === 'admin' ? '../admin/orders.php' : 'my_orders.php'; ?>"
-           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
-            <span class="material-symbols-outlined">arrow_back</span>
+<!-- Header -->
+<header class="sticky top-0 z-10 bg-white border-b">
+    <div class="max-w-md mx-auto flex items-center p-4 gap-4">
+        <a href="<?php echo $isAdmin ? '/webshop/admin/orders.php' : 'my_orders.php'; ?>"
+           class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100">
+            ←
         </a>
-
-        <h2 class="text-lg font-bold flex-1 text-center pr-10">
+        <h1 class="text-lg font-bold">
             Bestellung #<?php echo $order["id"]; ?>
-        </h2>
+        </h1>
     </div>
-</div>
+</header>
 
-<!-- Content -->
-<div class="max-w-md mx-auto px-4 pt-4 flex flex-col gap-4">
+<main class="max-w-md mx-auto px-4 pt-4 space-y-4">
 
-    <div class="text-sm text-gray-500">
-        Bestelldatum:
-        <?php echo date("d.m.Y H:i", strtotime($order["created_at"])); ?>
-    </div>
+<?php foreach ($items as $item): ?>
 
-    <?php foreach ($items as $item): ?>
+    <?php
+    $statusColors = [
+        "neu" => "bg-red-100 text-red-700",
+        "in_bearbeitung" => "bg-yellow-100 text-yellow-700",
+        "versendet" => "bg-blue-100 text-blue-700",
+        "zugestellt" => "bg-green-100 text-green-700",
+    ];
+    ?>
 
-        <div class="bg-white rounded-xl p-4 shadow-sm border">
-            <div class="flex gap-4">
+    <div class="bg-white rounded-xl p-4 shadow-sm border">
 
-                <div
-                    class="w-[70px] h-[90px] rounded-lg bg-cover bg-center"
-                    style="background-image:url('<?php echo htmlspecialchars($item["image"]); ?>');">
-                </div>
+        <div class="flex gap-4">
+            <div
+                class="w-[70px] h-[90px] rounded-lg bg-cover bg-center"
+                style="background-image:url('<?php echo htmlspecialchars($item["image"]); ?>');">
+            </div>
 
-                <div class="flex-1">
-                    <p class="font-semibold leading-tight">
-                        <?php echo htmlspecialchars($item["name"]); ?>
-                    </p>
-
-                    <p class="text-sm text-gray-500 mt-1">
-                        Menge: <?php echo $item["quantity"]; ?>
-                    </p>
-
-                    <p class="font-bold mt-2">
-                        <?php echo number_format($item["price"], 2, ",", "."); ?> €
-                    </p>
-                </div>
+            <div class="flex-1 space-y-1">
+                <p class="font-semibold">
+                    <?php echo htmlspecialchars($item["name"]); ?>
+                </p>
+                <p class="text-sm text-gray-500">
+                    Menge: <?php echo $item["quantity"]; ?>
+                </p>
+                <p class="font-bold">
+                    <?php echo number_format($item["price"], 2, ",", "."); ?> €
+                </p>
             </div>
         </div>
 
-    <?php endforeach; ?>
-
-    <div class="bg-white rounded-xl p-4 shadow-sm border mt-2">
-        <div class="flex justify-between font-bold text-lg">
-            <span>Gesamt</span>
-            <span>
-                <?php echo number_format($order["total"], 2, ",", "."); ?> €
+        <!-- Status -->
+        <div class="mt-3 flex items-center justify-between">
+            <span class="text-xs font-semibold px-3 py-1 rounded-full <?php echo $statusColors[$item["delivery_status"]] ?? ''; ?>">
+                <?php echo strtoupper(str_replace("_", " ", $item["delivery_status"])); ?>
             </span>
+
+            <?php if ($isAdmin): ?>
+                <form method="post">
+                    <input type="hidden" name="item_id" value="<?php echo $item["id"]; ?>">
+                    <select name="delivery_status"
+                            onchange="this.form.submit()"
+                            class="text-sm rounded-lg border px-2 py-1">
+                        <option value="neu" <?php if ($item["delivery_status"]==="neu") echo "selected"; ?>>Neu</option>
+                        <option value="in_bearbeitung" <?php if ($item["delivery_status"]==="in_bearbeitung") echo "selected"; ?>>In Bearbeitung</option>
+                        <option value="versendet" <?php if ($item["delivery_status"]==="versendet") echo "selected"; ?>>Versendet</option>
+                        <option value="zugestellt" <?php if ($item["delivery_status"]==="zugestellt") echo "selected"; ?>>Zugestellt</option>
+                    </select>
+                </form>
+            <?php endif; ?>
         </div>
+
     </div>
 
+<?php endforeach; ?>
+
+<!-- Summary -->
+<div class="bg-white rounded-xl p-4 shadow-sm border mt-4">
+    <div class="flex justify-between font-bold text-lg">
+        <span>Gesamt</span>
+        <span><?php echo number_format($order["total"], 2, ",", "."); ?> €</span>
+    </div>
 </div>
 
-<?php require_once "../includes/bottom_nav.php"; ?>
+</main>
 
 </body>
 </html>
