@@ -23,16 +23,19 @@ $errors = [];
 if (mb_strlen($authorName) < 2 || mb_strlen($authorName) > 100) {
     $errors[] = "Bitte einen gültigen Namen eingeben (2–100 Zeichen).";
 }
-if (!is_int($rating) || $rating < 0 || $rating > 5) {
-    $errors[] = "Bitte eine Bewertung zwischen 0 und 5 auswählen.";
+
+/* NUR 1–5 */
+if (!is_int($rating) || $rating < 1 || $rating > 5) {
+    $errors[] = "Bitte eine Bewertung zwischen 1 und 5 auswählen.";
 }
+
 if (mb_strlen($text) < 3) {
     $errors[] = "Bitte einen Rezensionstext eingeben (mind. 3 Zeichen).";
 }
 
 if (!empty($errors)) {
     $msg = urlencode(implode(" ", $errors));
-    header("Location: ../product.php?id={$productId}&err={$msg}");
+    header("Location: ../product.php?id={$productId}&err={$msg}#reviews");
     exit;
 }
 
