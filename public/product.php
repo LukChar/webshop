@@ -27,15 +27,16 @@ if (!$product) {
 /* Warenkorb-Anzahl */
 $cartCount = isset($_SESSION["cart"]) ? array_sum($_SESSION["cart"]) : 0;
 
-/* Sortierung */
+/* Sortierung (Whitelist + Mapping) */
 $sort = $_GET["sort"] ?? "date_desc";
-$allowedSort = ["date_desc","date_asc","rating_desc","rating_asc"];
-if (!in_array($sort, $allowedSort, true)) $sort = "date_desc";
-
-$orderBy = "r.created_at DESC";
-if ($sort === "date_asc") $orderBy = "r.created_at ASC";
-if ($sort === "rating_desc") $orderBy = "r.rating DESC, r.created_at DESC";
-if ($sort === "rating_asc") $orderBy = "r.rating ASC, r.created_at DESC";
+$sortMap = [
+    "date_desc"   => "r.created_at DESC, r.id DESC",
+    "date_asc"    => "r.created_at ASC, r.id ASC",
+    "rating_desc" => "r.rating DESC, r.created_at DESC, r.id DESC",
+    "rating_asc"  => "r.rating ASC, r.created_at DESC, r.id DESC",
+];
+if (!isset($sortMap[$sort])) $sort = "date_desc";
+$orderBy = $sortMap[$sort];
 
 /* Error msg */
 $errMsg = isset($_GET["err"]) ? trim($_GET["err"]) : "";
@@ -51,6 +52,26 @@ $ratingInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $avgRating = ($ratingInfo && (int)$ratingInfo["cnt"] > 0) ? (float)$ratingInfo["avg_rating"] : null;
 $reviewCount = $ratingInfo ? (int)$ratingInfo["cnt"] : 0;
+
+/* Rating Distribution (5..1) */
+$dist = [1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0];
+
+$stmt = $pdo->prepare("
+    SELECT rating, COUNT(*) AS cnt
+    FROM reviews
+    WHERE product_id = ?
+    GROUP BY rating
+");
+$stmt->execute([$productId]);
+$rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+foreach ($rows as $row) {
+    $r = (int)$row["rating"];
+    $c = (int)$row["cnt"];
+    if ($r >= 1 && $r <= 5) {
+        $dist[$r] = $c;
+    }
+}
 
 /* Reviews laden + Verified Purchase Flag */
 $reviews = [];
@@ -74,7 +95,7 @@ if ($reviewCount > 0) {
             ) AS verified_purchase
         FROM reviews r
         WHERE r.product_id = ?
-        ORDER BY {$orderBy}
+        ORDER BY $orderBy
     ");
     $stmt->execute([$productId]);
     $reviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -88,6 +109,10 @@ function formatStars($avg) {
     $full = ($frac >= 0.75) ? $full + 1 : $full;
     $empty = 5 - $full - $half;
     return [$full, $half, $empty];
+}
+function pct($part, $total) {
+    if ($total <= 0) return 0;
+    return (int)round(($part / $total) * 100);
 }
 ?>
 <!DOCTYPE html>
@@ -116,9 +141,7 @@ function formatStars($avg) {
                         "surface-light": "#ffffff",
                         "surface-dark": "#1c2e22",
                     },
-                    fontFamily: {
-                        display: ["Inter", "sans-serif"]
-                    },
+                    fontFamily: { display: ["Inter", "sans-serif"] },
                     borderRadius: {
                         "DEFAULT": "0.25rem",
                         "lg": "0.5rem",
@@ -149,8 +172,13 @@ function formatStars($avg) {
             <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">arrow_back_ios_new</span>
         </a>
 
-        <!-- rechts: NUR Warenkorb -->
         <div class="flex items-center gap-2">
+            <button type="button"
+                    class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    onclick="navigator.clipboard?.writeText(window.location.href)">
+                <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">share</span>
+            </button>
+
             <a href="cart.php"
                class="relative flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                 <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">shopping_cart</span>
@@ -255,16 +283,17 @@ function formatStars($avg) {
 
     <div class="h-px w-full bg-gray-200 dark:bg-gray-800"></div>
 
-    <!-- Reviews -->
+    <!-- Ratings & Reviews -->
     <div class="flex flex-col gap-4" id="reviews">
 
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-3">
             <h3 class="text-lg font-bold text-[#111813] dark:text-white">Bewertungen</h3>
 
             <!-- Sort Dropdown -->
-            <form method="get" action="product.php" class="flex items-center gap-2">
-                <input type="hidden" name="id" value="<?php echo $productId; ?>">
-                <select name="sort" class="h-10 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-dark text-sm"
+            <form method="get" action="product.php#reviews" class="flex items-center gap-2 shrink-0">
+                <input type="hidden" name="id" value="<?php echo (int)$productId; ?>">
+                <select name="sort"
+                        class="h-10 rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-surface-dark text-sm px-2"
                         onchange="this.form.submit()">
                     <option value="date_desc" <?php echo $sort==="date_desc" ? "selected" : ""; ?>>Neueste</option>
                     <option value="date_asc" <?php echo $sort==="date_asc" ? "selected" : ""; ?>>Älteste</option>
@@ -274,49 +303,125 @@ function formatStars($avg) {
             </form>
         </div>
 
+        <!-- Rating Summary Card -->
+        <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+            <div class="flex flex-wrap items-center gap-x-8 gap-y-6">
+                <div class="flex flex-col gap-1 items-center justify-center min-w-[80px]">
+                    <?php if ($avgRating !== null): ?>
+                        <p class="text-[#111813] dark:text-white text-5xl font-black leading-none tracking-tight">
+                            <?php echo number_format($avgRating, 1, ".", ""); ?>
+                        </p>
+
+                        <?php [$full, $half, $empty] = formatStars($avgRating); ?>
+                        <div class="flex text-yellow-500 text-sm">
+                            <?php for ($i=0; $i<$full; $i++): ?>
+                                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+                            <?php endfor; ?>
+                            <?php if ($half === 1): ?>
+                                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
+                            <?php endif; ?>
+                            <?php for ($i=0; $i<$empty; $i++): ?>
+                                <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1; opacity: 0.25;">star</span>
+                            <?php endfor; ?>
+                        </div>
+
+                        <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">
+                            <?php echo (int)$reviewCount; ?> reviews
+                        </p>
+                    <?php else: ?>
+                        <p class="text-[#111813] dark:text-white text-5xl font-black leading-none tracking-tight">–</p>
+                        <p class="text-gray-500 dark:text-gray-400 text-xs mt-1">0 reviews</p>
+                    <?php endif; ?>
+                </div>
+
+                <div class="grid flex-1 grid-cols-[12px_1fr_30px] items-center gap-y-2 gap-x-3">
+                    <?php for ($star = 5; $star >= 1; $star--): ?>
+                        <?php $p = pct($dist[$star], $reviewCount); ?>
+                        <p class="text-gray-600 dark:text-gray-400 text-xs font-medium"><?php echo $star; ?></p>
+
+                        <div class="flex h-1.5 flex-1 overflow-hidden rounded-full bg-gray-100 dark:bg-gray-800">
+                            <div class="rounded-full bg-primary" style="width: <?php echo $p; ?>%;"></div>
+                        </div>
+
+                        <p class="text-gray-500 dark:text-gray-400 text-xs text-right"><?php echo $p; ?>%</p>
+                    <?php endfor; ?>
+                </div>
+            </div>
+        </div>
+
         <?php if ($errMsg): ?>
             <div class="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
                 <?php echo htmlspecialchars($errMsg); ?>
             </div>
         <?php endif; ?>
 
-        <!-- Add Review Form (nur wenn logged in) -->
+        <!-- Toggle Button + Collapsible Review Form -->
         <?php if (isset($_SESSION["user_id"])): ?>
-            <form action="reviews/reviews_add.php" method="post" class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-gray-200 dark:border-gray-700 flex flex-col gap-3">
-                <input type="hidden" name="product_id" value="<?php echo $productId; ?>">
 
-                <div class="grid grid-cols-1 gap-3">
-                    <div>
-                        <label class="text-sm font-semibold block mb-1">Name *</label>
-                        <input name="author_name" required minlength="2" maxlength="100"
-                               class="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-[#14281b] p-2"
-                               placeholder="Vorname & Nachname">
+            <button
+                id="toggleReviewBtn"
+                type="button"
+                aria-expanded="false"
+                aria-controls="reviewFormWrap"
+                class="h-12 rounded-xl bg-primary font-bold text-[#111813] active:scale-[0.99] flex items-center justify-center gap-2"
+            >
+                <span class="material-symbols-outlined" style="font-size:22px;">edit</span>
+                Rezension schreiben
+            </button>
+
+            <div id="reviewFormWrap" class="hidden">
+                <form action="reviews/reviews_add.php" method="post"
+                      class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-gray-200 dark:border-gray-700 flex flex-col gap-3">
+                    <input type="hidden" name="product_id" value="<?php echo $productId; ?>">
+
+                    <div class="text-sm font-bold text-[#111813] dark:text-white">
+                        Deine Rezension
                     </div>
 
-                    <div>
-                        <label class="text-sm font-semibold block mb-1">Bewertung (1–5) *</label>
-                        <select name="rating" required class="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-[#14281b] p-2">
-                            <option value="">Bitte wählen</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                        </select>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div>
+                            <label class="text-sm font-semibold block mb-1">Name *</label>
+                            <input name="author_name" required minlength="2" maxlength="100"
+                                   class="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-[#14281b] p-2"
+                                   placeholder="Vorname & Nachname">
+                        </div>
+
+                        <!-- Stern-Rating (JS) -->
+                        <div>
+                            <label class="text-sm font-semibold block mb-1">Bewertung (1–5) *</label>
+
+                            <input type="hidden" name="rating" id="ratingInput" required>
+
+                            <div class="flex items-center gap-1" id="starRating" aria-label="Bewertung auswählen">
+                                <?php for ($i = 1; $i <= 5; $i++): ?>
+                                    <button type="button"
+                                            data-value="<?php echo $i; ?>"
+                                            class="starBtn text-gray-300 hover:text-yellow-500 transition-colors"
+                                            title="<?php echo $i; ?> Sterne">
+                                        <span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">
+                                            star
+                                        </span>
+                                    </button>
+                                <?php endfor; ?>
+                            </div>
+
+                            <p class="text-xs text-gray-500 mt-1" id="ratingHint">Bitte Sterne auswählen</p>
+                        </div>
+
+                        <div>
+                            <label class="text-sm font-semibold block mb-1">Text *</label>
+                            <textarea name="text" required minlength="3" rows="3"
+                                      class="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-[#14281b] p-2"
+                                      placeholder="Schreibe deine Rezension..."></textarea>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="text-sm font-semibold block mb-1">Text *</label>
-                        <textarea name="text" required minlength="3" rows="3"
-                                  class="w-full rounded-lg border-gray-200 dark:border-gray-700 bg-white dark:bg-[#14281b] p-2"
-                                  placeholder="Schreibe deine Rezension..."></textarea>
-                    </div>
-                </div>
+                    <button class="h-12 rounded-xl bg-primary font-bold text-[#111813] active:scale-[0.99]">
+                        Rezension speichern
+                    </button>
+                </form>
+            </div>
 
-                <button class="h-12 rounded-xl bg-primary font-bold text-[#111813] active:scale-[0.99]">
-                    Rezension speichern
-                </button>
-            </form>
         <?php else: ?>
             <div class="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300">
                 Bitte einloggen, um eine Rezension zu schreiben.
@@ -407,19 +512,95 @@ function formatStars($avg) {
 </div>
 
 <script>
+    // Quantity Stepper
     const qtyText = document.getElementById("qtyText");
     const qtyInput = document.getElementById("qtyInput");
     const minus = document.getElementById("qtyMinus");
     const plus = document.getElementById("qtyPlus");
 
     let qty = 1;
-    function render() {
+    function renderQty() {
         qtyText.textContent = String(qty);
         qtyInput.value = String(qty);
     }
-    minus.addEventListener("click", () => { qty = Math.max(1, qty - 1); render(); });
-    plus.addEventListener("click", () => { qty = Math.min(99, qty + 1); render(); });
-    render();
+    if (minus && plus) {
+        minus.addEventListener("click", () => { qty = Math.max(1, qty - 1); renderQty(); });
+        plus.addEventListener("click", () => { qty = Math.min(99, qty + 1); renderQty(); });
+        renderQty();
+    }
+
+    // Review Form Toggle (single toggle button)
+    const toggleBtn = document.getElementById("toggleReviewBtn");
+    const formWrap = document.getElementById("reviewFormWrap");
+
+    function openReviewForm() {
+        if (!toggleBtn || !formWrap) return;
+        formWrap.classList.remove("hidden");
+        toggleBtn.setAttribute("aria-expanded", "true");
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:22px;">close</span> Rezension schließen';
+
+        const firstInput = formWrap.querySelector('input[name="author_name"]');
+        if (firstInput) firstInput.focus({ preventScroll: true });
+    }
+
+    function closeReviewForm() {
+        if (!toggleBtn || !formWrap) return;
+        formWrap.classList.add("hidden");
+        toggleBtn.setAttribute("aria-expanded", "false");
+        toggleBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size:22px;">edit</span> Rezension schreiben';
+    }
+
+    if (toggleBtn && formWrap) {
+        toggleBtn.addEventListener("click", () => {
+            const isOpen = toggleBtn.getAttribute("aria-expanded") === "true";
+            if (isOpen) closeReviewForm();
+            else openReviewForm();
+        });
+    }
+
+    // Auto-open if error present
+    const hasErr = <?php echo $errMsg ? "true" : "false"; ?>;
+    if (hasErr) {
+        openReviewForm();
+    }
+
+    // Star Rating (1–5)
+    const starWrap = document.getElementById("starRating");
+    const starBtns = starWrap ? starWrap.querySelectorAll(".starBtn") : [];
+    const ratingInput = document.getElementById("ratingInput");
+    const ratingHint = document.getElementById("ratingHint");
+
+    function paintStars(value) {
+        starBtns.forEach(btn => {
+            const v = Number(btn.dataset.value);
+            btn.classList.toggle("text-yellow-500", v <= value);
+            btn.classList.toggle("text-gray-300", v > value);
+        });
+    }
+
+    starBtns.forEach(btn => {
+        btn.addEventListener("mouseenter", () => {
+            const v = Number(btn.dataset.value);
+            paintStars(v);
+        });
+        btn.addEventListener("focus", () => {
+            const v = Number(btn.dataset.value);
+            paintStars(v);
+        });
+        btn.addEventListener("click", () => {
+            const v = Number(btn.dataset.value);
+            if (ratingInput) ratingInput.value = String(v);
+            paintStars(v);
+            if (ratingHint) ratingHint.textContent = v + " von 5 Sternen";
+        });
+    });
+
+    if (starWrap) {
+        starWrap.addEventListener("mouseleave", () => {
+            const current = Number((ratingInput && ratingInput.value) ? ratingInput.value : 0);
+            paintStars(current);
+        });
+    }
 </script>
 
 </body>
