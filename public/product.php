@@ -371,7 +371,7 @@ function formatStars($avg) {
                                 Hilfreich
                             </button>
                         </form>
-                        <span class="text-xs text-gray-500"><?php echo (int)$r["helpful"]; ?> hilfreich</span>
+                        <span class="text-xs text-gray-500"><?php echo (int)$r["helpful"]; ?> x hilfreich</span>
                     </div>
                 </div>
             <?php endforeach; ?>
