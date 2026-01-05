@@ -10,10 +10,10 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
 <div class="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
     <div class="relative h-16">
 
-        <!-- 🔹 EBENE 1: TITEL (JETZT KLICKBAR, WEITERHIN ZENTRIERT) -->
-        <div class="absolute inset-0 flex items-center justify-center">
+        <!-- 🔹 EBENE 1: TITEL (KLICKBAR, ZENTRIERT, BLOCKIERT NICHT) -->
+        <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
             <a href="/webshop/public/index.php"
-               class="text-xl font-bold select-none pointer-events-auto">
+               class="text-xl font-bold select-none pointer-events-auto cursor-pointer">
                 <span class="text-[#111813] dark:text-white">Campus</span>
                 <span class="text-primary">Shop</span>
             </a>
