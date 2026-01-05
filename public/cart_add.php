@@ -1,26 +1,29 @@
 <?php
 session_start();
 
-/* Prüfen, ob Produkt-ID übergeben wurde */
-if (!isset($_POST["product_id"])) {
+$productId = isset($_POST["product_id"]) ? (int)$_POST["product_id"] : 0;
+$qty = isset($_POST["quantity"]) ? (int)$_POST["quantity"] : 1;
+
+if ($productId <= 0) {
     header("Location: index.php");
     exit;
 }
 
-$productId = (int) $_POST["product_id"];
+// Menge absichern
+if ($qty < 1) $qty = 1;
+if ($qty > 99) $qty = 99;
 
-/* Warenkorb initialisieren */
-if (!isset($_SESSION["cart"])) {
+if (!isset($_SESSION["cart"]) || !is_array($_SESSION["cart"])) {
     $_SESSION["cart"] = [];
 }
 
-/* Produkt hinzufügen oder Menge erhöhen */
-if (isset($_SESSION["cart"][$productId])) {
-    $_SESSION["cart"][$productId]++;
-} else {
-    $_SESSION["cart"][$productId] = 1;
+if (!isset($_SESSION["cart"][$productId])) {
+    $_SESSION["cart"][$productId] = 0;
 }
 
-/* Zurück zur Startseite */
-header("Location: index.php");
+$_SESSION["cart"][$productId] += $qty;
+
+// Zurück: wenn Referer vorhanden, sonst Warenkorb
+$back = $_SERVER["HTTP_REFERER"] ?? "cart.php";
+header("Location: " . $back);
 exit;

@@ -1,132 +1,117 @@
 <?php
-// /auth/google_callback.php
-declare(strict_types=1);
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 session_start();
 require_once __DIR__ . "/../includes/db.php";
 require_once __DIR__ . "/../includes/google_oauth.php";
 
-function httpPostForm(string $url, array $data): array {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => http_build_query($data),
-        CURLOPT_HTTPHEADER => ["Content-Type: application/x-www-form-urlencoded"],
-        CURLOPT_TIMEOUT => 15,
-    ]);
-    $raw = curl_exec($ch);
-    $err = curl_error($ch);
-    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($raw === false) throw new RuntimeException("cURL Fehler: " . $err);
-
-    $json = json_decode($raw, true);
-    if (!is_array($json)) throw new RuntimeException("Ungültige Token-Response.");
-
-    if ($code >= 400) {
-        $msg = $json["error_description"] ?? ($json["error"] ?? "Token-Request fehlgeschlagen");
-        throw new RuntimeException($msg);
-    }
-
-    return $json;
+// 1) Error von Google?
+if (isset($_GET["error"])) {
+    die("Google OAuth Fehler: " . htmlspecialchars($_GET["error"]));
 }
 
-function httpGetJson(string $url, string $bearer): array {
-    $ch = curl_init($url);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_HTTPHEADER => ["Authorization: Bearer " . $bearer],
-        CURLOPT_TIMEOUT => 15,
-    ]);
-    $raw = curl_exec($ch);
-    $err = curl_error($ch);
-    $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($raw === false) throw new RuntimeException("cURL Fehler: " . $err);
-
-    $json = json_decode($raw, true);
-    if (!is_array($json)) throw new RuntimeException("Ungültige Userinfo-Response.");
-
-    if ($code >= 400) throw new RuntimeException("Userinfo Request fehlgeschlagen.");
-
-    return $json;
-}
-
-try {
-    $code  = $_GET["code"] ?? "";
-    $state = $_GET["state"] ?? "";
-
-    if ($code === "" || $state === "") {
-        throw new RuntimeException("Google Login abgebrochen.");
-    }
-
-    if (!isset($_SESSION["oauth_state"]) || !hash_equals($_SESSION["oauth_state"], $state)) {
-        throw new RuntimeException("Ungültiger OAuth State.");
-    }
-    unset($_SESSION["oauth_state"]);
-
-    // Code -> Token
-    $token = httpPostForm(GOOGLE_TOKEN_URL, [
-        "code" => $code,
-        "client_id" => GOOGLE_CLIENT_ID,
-        "client_secret" => GOOGLE_CLIENT_SECRET,
-        "redirect_uri" => GOOGLE_REDIRECT_URI,
-        "grant_type" => "authorization_code",
-    ]);
-
-    $accessToken = $token["access_token"] ?? "";
-    if ($accessToken === "") throw new RuntimeException("Kein Access Token erhalten.");
-
-    // Userinfo
-    $u = httpGetJson(GOOGLE_USERINFO, $accessToken);
-
-    $googleId = trim((string)($u["sub"] ?? ""));
-    $email    = trim((string)($u["email"] ?? ""));
-
-    if ($googleId === "" || $email === "") {
-        throw new RuntimeException("Unvollständige Google Userdaten.");
-    }
-
-    // User finden (google_id oder email)
-    $stmt = $pdo->prepare("SELECT id, password, role, active, google_id FROM users WHERE google_id = ? OR email = ? LIMIT 1");
-    $stmt->execute([$googleId, $email]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($user) {
-        if ((int)$user["active"] !== 1) {
-            throw new RuntimeException("Ihr Konto ist nicht aktiv.");
-        }
-
-        // google_id nachtragen falls leer
-        if (empty($user["google_id"])) {
-            $up = $pdo->prepare("UPDATE users SET google_id = ? WHERE id = ?");
-            $up->execute([$googleId, (int)$user["id"]]);
-        }
-
-        $_SESSION["user_id"] = (int)$user["id"];
-        $_SESSION["role"] = $user["role"] ?? "user";
-    } else {
-        // Neues Konto: wir setzen ein zufälliges Passwort-Hash (damit NOT NULL sicher ist)
-        $randomPasswordHash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
-
-        // active = 1, role = user
-        $ins = $pdo->prepare("
-            INSERT INTO users (email, password, role, active, google_id)
-            VALUES (?, ?, 'user', 1, ?)
-        ");
-        $ins->execute([$email, $randomPasswordHash, $googleId]);
-
-        $_SESSION["user_id"] = (int)$pdo->lastInsertId();
-        $_SESSION["role"] = "user";
-    }
-
-    header("Location: ../public/index.php");
-    exit;
-
-} catch (Throwable $e) {
-    header("Location: login.php?err=" . urlencode($e->getMessage()));
+// 2) State prüfen
+$state = $_GET["state"] ?? "";
+if ($state === "" || !isset($_SESSION["google_oauth_state"]) || !hash_equals($_SESSION["google_oauth_state"], $state)) {
+    // Debug-Ausgabe (hilft sofort)
+    echo "Ungültiger OAuth State.<br><br>";
+    echo "GET state: " . htmlspecialchars($state) . "<br>";
+    echo "SESSION state: " . htmlspecialchars($_SESSION["google_oauth_state"] ?? "(none)") . "<br>";
+    echo "Session ID: " . htmlspecialchars(session_id()) . "<br>";
     exit;
 }
+
+// Einmal verwenden
+unset($_SESSION["google_oauth_state"]);
+
+// 3) Authorization Code prüfen
+$code = $_GET["code"] ?? "";
+if ($code === "") {
+    die("Kein Authorization Code erhalten.");
+}
+
+// 4) Code -> Token tauschen
+$postData = [
+    "code" => $code,
+    "client_id" => GOOGLE_CLIENT_ID,
+    "client_secret" => GOOGLE_CLIENT_SECRET,
+    "redirect_uri" => GOOGLE_REDIRECT_URI,
+    "grant_type" => "authorization_code",
+];
+
+$ch = curl_init(GOOGLE_TOKEN_URL);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST => true,
+    CURLOPT_POSTFIELDS => http_build_query($postData),
+    CURLOPT_HTTPHEADER => ["Content-Type: application/x-www-form-urlencoded"],
+]);
+$tokenResponse = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($tokenResponse === false || $httpCode !== 200) {
+    die("Token request failed. HTTP " . (int)$httpCode . "<br>" . htmlspecialchars((string)$tokenResponse));
+}
+
+$tokenData = json_decode($tokenResponse, true);
+$accessToken = $tokenData["access_token"] ?? "";
+if ($accessToken === "") {
+    die("Kein access_token erhalten.");
+}
+
+// 5) Userinfo holen
+$ch = curl_init(GOOGLE_USERINFO);
+curl_setopt_array($ch, [
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_HTTPHEADER => ["Authorization: Bearer " . $accessToken],
+]);
+$userResponse = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($userResponse === false || $httpCode !== 200) {
+    die("Userinfo request failed. HTTP " . (int)$httpCode . "<br>" . htmlspecialchars((string)$userResponse));
+}
+
+$user = json_decode($userResponse, true);
+
+$email = trim($user["email"] ?? "");
+$name  = trim($user["name"] ?? "");
+$googleSub = trim($user["sub"] ?? ""); // Google User ID
+
+if ($email === "" || $googleSub === "") {
+    die("Ungültige Userdaten von Google.");
+}
+
+// 6) User in DB finden/erstellen (minimal)
+$stmt = $pdo->prepare("SELECT id, role, active FROM users WHERE email = ? LIMIT 1");
+$stmt->execute([$email]);
+$existing = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($existing) {
+    if ((int)$existing["active"] !== 1) {
+        die("Ihr Konto ist nicht aktiv.");
+    }
+    $userId = (int)$existing["id"];
+    $role   = (string)$existing["role"];
+} else {
+    // minimaler Insert (passwort leer/NULL je nach Schema)
+    $stmt = $pdo->prepare("
+        INSERT INTO users (email, name, role, active)
+        VALUES (?, ?, 'user', 1)
+    ");
+    $stmt->execute([$email, $name !== "" ? $name : $email]);
+    $userId = (int)$pdo->lastInsertId();
+    $role   = "user";
+}
+
+// 7) Login Session setzen
+$_SESSION["user_id"] = $userId;
+$_SESSION["role"] = $role;
+
+// 8) Redirect
+header("Location: /webshop/public/index.php");
+exit;
