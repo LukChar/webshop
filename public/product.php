@@ -2,6 +2,7 @@
 session_start();
 require_once "../includes/db.php";
 
+
 /* ID prüfen */
 $productId = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
 if ($productId <= 0) {
@@ -165,23 +166,31 @@ function pct($part, $total) {
 
 <!-- Sticky Header -->
 <div class="sticky top-0 z-50 bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 transition-colors">
-    <div class="flex items-center p-4 justify-between h-16">
+    <div class="relative flex items-center px-4 h-16">
 
+        <!-- Links: Back -->
         <a href="index.php"
-           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-            <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">arrow_back_ios_new</span>
+           class="relative z-10 flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+            <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">
+                arrow_back_ios_new
+            </span>
         </a>
 
-        <div class="flex items-center gap-2">
-            <button type="button"
-                    class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    onclick="navigator.clipboard?.writeText(window.location.href)">
-                <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">share</span>
-            </button>
+        <!-- Mitte: CampusShop (klickbar) -->
+        <div class="absolute inset-0 flex items-center justify-center">
+            <a href="index.php"
+               class="text-lg font-bold text-[#111813] dark:text-white hover:opacity-80">
+                CampusShop
+            </a>
+        </div>
 
+        <!-- Rechts: Warenkorb -->
+        <div class="ml-auto relative z-10">
             <a href="cart.php"
                class="relative flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-                <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">shopping_cart</span>
+                <span class="material-symbols-outlined text-[#111813] dark:text-white" style="font-size: 24px;">
+                    shopping_cart
+                </span>
 
                 <?php if ($cartCount > 0): ?>
                     <span class="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-black">
@@ -193,6 +202,7 @@ function pct($part, $total) {
 
     </div>
 </div>
+
 
 <!-- Product Image -->
 <div class="relative w-full bg-surface-light dark:bg-surface-dark mb-4">

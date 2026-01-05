@@ -10,19 +10,22 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
 <div class="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
     <div class="relative h-16">
 
-        <!-- 🔹 EBENE 1: TITEL (NIE KLICKBAR) -->
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <h1 class="text-xl font-bold text-[#111813] dark:text-white select-none">
-                WEBSHOP
-            </h1>
+        <!-- 🔹 EBENE 1: TITEL (KLICKBAR, IMMER OBEN) -->
+        <div class="absolute inset-0 z-20 flex items-center justify-center">
+            <a href="index.php"
+                class="text-lg font-bold text-[#111813] dark:text-white hover:opacity-80
+                focus:outline-none focus:ring-0 focus-visible:outline-none">
+    CampusShop
+</a>
+
         </div>
 
-        <!-- 🔹 EBENE 2: INHALT (KLICKBAR) -->
-        <div class="relative z-10 flex items-center h-full px-4">
+        <!-- 🔹 EBENE 2: INHALT (Darf Titel NICHT blockieren) -->
+        <div class="relative z-10 flex items-center h-full px-4 pointer-events-none">
 
             <!-- Profil -->
             <a href="/webshop/public/profile.php"
-               class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark">
+               class="pointer-events-auto flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark">
                 <span class="material-symbols-outlined" style="font-size:28px;">
                     account_circle
                 </span>
@@ -34,7 +37,7 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
             <!-- Admin Zahnrad -->
             <?php if ($isAdmin): ?>
                 <a href="/webshop/admin/index.php"
-                   class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark"
+                   class="pointer-events-auto flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark"
                    title="Admin Bereich">
                     <span class="material-symbols-outlined">settings</span>
                 </a>
@@ -42,7 +45,7 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
 
             <!-- Warenkorb -->
             <a href="/webshop/public/cart.php"
-               class="relative flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark ml-1">
+               class="pointer-events-auto relative flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark ml-1">
                 <span class="material-symbols-outlined" style="font-size:26px;">
                     shopping_cart
                 </span>
