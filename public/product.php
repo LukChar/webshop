@@ -177,12 +177,14 @@ function pct($part, $total) {
         </a>
 
         <!-- Mitte: CampusShop (klickbar) -->
-        <div class="absolute inset-0 flex items-center justify-center">
-            <a href="index.php"
-               class="text-lg font-bold text-[#111813] dark:text-white hover:opacity-80">
-                CampusShop
-            </a>
-        </div>
+        <div class="absolute inset-0 flex items-center justify-center z-50">
+            <a href="/webshop/public/index.php"
+       class="text-xl font-bold select-none pointer-events-auto cursor-pointer">
+        <span class="text-[#111813] dark:text-white">Campus</span>
+        <span class="text-primary">Shop</span>
+                 </a>
+            </div>
+
 
         <!-- Rechts: Warenkorb -->
         <div class="ml-auto relative z-10">
