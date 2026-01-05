@@ -11,7 +11,14 @@ $message = "";
 
 /* Kategorien laden */
 $stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC");
-$categories = $stmt->fetchAll();
+$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+/* Default values fürs Formular (damit nach Error nicht alles weg ist) */
+$name = "";
+$price = "";
+$description = "";
+$categoryId = "";
+$image = "";
 
 /* Produkt anlegen */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -20,16 +27,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $price = $_POST["price"] ?? "";
     $description = trim($_POST["description"] ?? "");
     $categoryId = $_POST["category_id"] ?? "";
+    $image = trim($_POST["image"] ?? "");
 
     if ($name === "" || $price === "" || $description === "" || $categoryId === "") {
-        $message = "Bitte alle Felder ausfüllen.";
+        $message = "Bitte alle Pflichtfelder ausfüllen.";
+    } elseif (!is_numeric($price)) {
+        $message = "Preis muss eine Zahl sein.";
+    } elseif ($image !== "" && filter_var($image, FILTER_VALIDATE_URL) === false) {
+        $message = "Bild-URL ist ungültig (bitte vollständige URL mit https://...).";
     } else {
         $stmt = $pdo->prepare(
-            "INSERT INTO products (name, price, description, category_id)
-             VALUES (?, ?, ?, ?)"
+            "INSERT INTO products (name, price, description, category_id, image)
+             VALUES (?, ?, ?, ?, ?)"
         );
-        $stmt->execute([$name, $price, $description, $categoryId]);
+        $stmt->execute([$name, $price, $description, $categoryId, $image]);
+
         $message = "Produkt erfolgreich angelegt.";
+
+        // Formular leeren
+        $name = $price = $description = $categoryId = $image = "";
     }
 }
 
@@ -40,7 +56,7 @@ $stmt = $pdo->query("
     LEFT JOIN categories c ON c.id = p.category_id
     ORDER BY p.id DESC
 ");
-$products = $stmt->fetchAll();
+$products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -102,21 +118,26 @@ tailwind.config = {
     <form method="post" class="space-y-4">
 
         <label class="block">
-            <span class="text-sm font-medium">Produktname</span>
-            <input type="text" name="name" required class="w-full h-12 rounded-lg border p-3">
+            <span class="text-sm font-medium">Produktname *</span>
+            <input type="text" name="name" required
+                   value="<?php echo htmlspecialchars($name); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
         </label>
 
         <label class="block">
-            <span class="text-sm font-medium">Preis (€)</span>
-            <input type="number" step="0.01" name="price" required class="w-full h-12 rounded-lg border p-3">
+            <span class="text-sm font-medium">Preis (€) *</span>
+            <input type="number" step="0.01" min="0" name="price" required
+                   value="<?php echo htmlspecialchars((string)$price); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
         </label>
 
         <label class="block">
-            <span class="text-sm font-medium">Kategorie</span>
+            <span class="text-sm font-medium">Kategorie *</span>
             <select name="category_id" required class="w-full h-12 rounded-lg border p-3">
                 <option value="">Bitte wählen</option>
                 <?php foreach ($categories as $cat): ?>
-                    <option value="<?php echo $cat["id"]; ?>">
+                    <option value="<?php echo (int)$cat["id"]; ?>"
+                        <?php echo ((string)$categoryId === (string)$cat["id"]) ? "selected" : ""; ?>>
                         <?php echo htmlspecialchars($cat["name"]); ?>
                     </option>
                 <?php endforeach; ?>
@@ -124,8 +145,17 @@ tailwind.config = {
         </label>
 
         <label class="block">
-            <span class="text-sm font-medium">Beschreibung</span>
-            <textarea name="description" rows="3" required class="w-full rounded-lg border p-3"></textarea>
+            <span class="text-sm font-medium">Bild-URL (optional)</span>
+            <input type="text" name="image"
+                   value="<?php echo htmlspecialchars($image); ?>"
+                   placeholder="https://..."
+                   class="w-full h-12 rounded-lg border p-3">
+        </label>
+
+        <label class="block">
+            <span class="text-sm font-medium">Beschreibung *</span>
+            <textarea name="description" rows="3" required
+                      class="w-full rounded-lg border p-3"><?php echo htmlspecialchars($description); ?></textarea>
         </label>
 
         <button type="submit"
@@ -153,11 +183,11 @@ tailwind.config = {
                     <?php echo htmlspecialchars($product["category"] ?? "—"); ?>
                 </p>
                 <p class="text-sm font-bold mt-1">
-                    <?php echo number_format($product["price"], 2, ",", "."); ?> €
+                    <?php echo number_format((float)$product["price"], 2, ",", "."); ?> €
                 </p>
             </div>
 
-            <a href="product_edit.php?id=<?php echo $product["id"]; ?>"
+            <a href="product_edit.php?id=<?php echo (int)$product["id"]; ?>"
                class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
                 <span class="material-symbols-outlined">edit</span>
             </a>
