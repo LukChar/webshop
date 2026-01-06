@@ -273,7 +273,7 @@ function pct($part, $total) {
 
             <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
                     <span class="material-symbols-outlined text-primary" style="font-size: 20px;">check_circle</span>
-                    Gratis Versand ab 50 €
+                    Gratis Versand ab 50€
                 </div>
 
             <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
