@@ -271,11 +271,17 @@ function pct($part, $total) {
 
             <div class="h-px bg-gray-100 dark:bg-gray-800 my-1"></div>
 
-            <div class="flex flex-col gap-2">
-                <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
+            <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
                     <span class="material-symbols-outlined text-primary" style="font-size: 20px;">check_circle</span>
-                    Schneller Checkout
+                    Gratis Versand ab 50 €
                 </div>
+
+            <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
+                    <span class="material-symbols-outlined text-primary" style="font-size: 20px;">check_circle</span>
+                    Hergestellt in der EU
+                </div>
+            <div class="flex flex-col gap-2">
+                
                 <div class="text-[13px] font-medium flex gap-2.5 items-center text-[#111813] dark:text-gray-300">
                     <span class="material-symbols-outlined text-primary" style="font-size: 20px;">check_circle</span>
                     Sichere Zahlung
