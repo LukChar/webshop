@@ -33,7 +33,7 @@ $stmt = $pdo->query("
     GROUP BY o.id
     ORDER BY o.created_at DESC
 ");
-$orders = $stmt->fetchAll();
+$orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -98,25 +98,38 @@ tailwind.config = {
                 <?php foreach ($orders as $order): ?>
 
                     <?php
-                    /* Bestellstatus berechnen */
-                    if ($order["cnt_zugestellt"] == $order["cnt_items"]) {
-                        $statusText = "Abgeschlossen";
+                    /* Saubere Status-Ableitung */
+                    $total        = (int)$order["cnt_items"];
+                    $neu          = (int)$order["cnt_neu"];
+                    $bearbeitung  = (int)$order["cnt_bearbeitung"];
+                    $versendet    = (int)$order["cnt_versendet"];
+                    $zugestellt   = (int)$order["cnt_zugestellt"];
+
+                    if ($zugestellt === $total) {
+                        $statusText  = "Abgeschlossen";
                         $statusClass = "bg-green-100 text-green-700";
-                    } elseif ($order["cnt_versendet"] > 0) {
-                        $statusText = "Teilweise versendet";
+
+                    } elseif ($versendet === $total) {
+                        $statusText  = "Versendet";
                         $statusClass = "bg-blue-100 text-blue-700";
-                    } elseif ($order["cnt_bearbeitung"] > 0) {
-                        $statusText = "In Bearbeitung";
+
+                    } elseif ($versendet > 0) {
+                        $statusText  = "Teilweise versendet";
+                        $statusClass = "bg-indigo-100 text-indigo-700";
+
+                    } elseif ($bearbeitung > 0) {
+                        $statusText  = "In Bearbeitung";
                         $statusClass = "bg-yellow-100 text-yellow-700";
+
                     } else {
-                        $statusText = "Neu";
+                        $statusText  = "Neu";
                         $statusClass = "bg-red-100 text-red-700";
                     }
                     ?>
 
                     <tr class="border-t hover:bg-gray-50">
                         <td class="p-3 font-medium">
-                            #<?php echo $order["id"]; ?>
+                            #<?php echo (int)$order["id"]; ?>
                         </td>
 
                         <td class="p-3">
@@ -134,12 +147,12 @@ tailwind.config = {
                         </td>
 
                         <td class="p-3 text-right font-semibold">
-                            <?php echo number_format($order["total"], 2, ",", "."); ?> €
+                            <?php echo number_format((float)$order["total"], 2, ",", "."); ?> €
                         </td>
 
                         <td class="p-3">
                             <a
-                                href="../public/order_detail.php?id=<?php echo $order["id"]; ?>"
+                                href="../public/order_detail.php?id=<?php echo (int)$order["id"]; ?>"
                                 class="text-primary font-medium hover:underline"
                             >
                                 Details
