@@ -12,6 +12,10 @@ if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
     exit;
 }
 
+/* Kategorien laden */
+$catStmt = $pdo->query("SELECT id, name FROM categories ORDER BY name");
+$categories = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+
 $error = "";
 $success = "";
 
@@ -22,6 +26,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $price = trim($_POST["price"] ?? "");
     $description = trim($_POST["description"] ?? "");
     $image = trim($_POST["image"] ?? "");
+    $categoryId = ($_POST["category_id"] ?? "") !== "" ? (int)$_POST["category_id"] : null;
 
     if ($name === "" || $price === "" || $description === "") {
         $error = "Bitte alle Pflichtfelder ausfüllen.";
@@ -30,20 +35,22 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     } else {
 
         $stmt = $pdo->prepare("
-            INSERT INTO products (name, price, description, image)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO products (name, price, description, image, category_id)
+            VALUES (?, ?, ?, ?, ?)
         ");
         $stmt->execute([
             $name,
             $price,
             $description,
-            $image
+            $image,
+            $categoryId
         ]);
 
         $success = "Produkt erfolgreich angelegt.";
 
         // Formular leeren
         $name = $price = $description = $image = "";
+        $categoryId = null;
     }
 }
 ?>
@@ -116,6 +123,21 @@ tailwind.config = {
                 value="<?php echo htmlspecialchars($price ?? ""); ?>"
                 class="w-full h-12 rounded-lg border p-3"
             >
+        </label>
+
+        <label>
+            <span class="text-sm font-medium">Kategorie</span>
+            <select
+                name="category_id"
+                class="w-full h-12 rounded-lg border p-3"
+            >
+                <option value="">– Keine Kategorie –</option>
+                <?php foreach ($categories as $cat): ?>
+                    <option value="<?php echo $cat["id"]; ?>">
+                        <?php echo htmlspecialchars($cat["name"]); ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
         </label>
 
         <label>

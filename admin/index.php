@@ -59,7 +59,16 @@ tailwind.config = {
             </p>
         </a>
 
-        <!-- Benutzerverwaltung (NEU) -->
+        <!-- Kategorien (NEU) -->
+        <a href="categories.php"
+           class="bg-white rounded-xl p-6 shadow-sm border hover:border-primary transition-colors">
+            <h2 class="text-lg font-bold mb-2">Kategorien verwalten</h2>
+            <p class="text-gray-500 text-sm">
+                Kategorien erstellen, bearbeiten und löschen
+            </p>
+        </a>
+
+        <!-- Benutzerverwaltung -->
         <a href="users.php"
            class="bg-white rounded-xl p-6 shadow-sm border hover:border-primary transition-colors">
             <h2 class="text-lg font-bold mb-2">Benutzer verwalten</h2>
