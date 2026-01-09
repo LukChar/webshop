@@ -16,6 +16,7 @@ if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
 
 <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
 
 <script>
 tailwind.config = {
@@ -33,58 +34,102 @@ tailwind.config = {
 </script>
 </head>
 
-<body class="bg-gray-100 font-display">
+<body class="bg-gray-100 font-display text-[#111813]">
 
-<div class="max-w-4xl mx-auto p-6">
+<div class="max-w-5xl mx-auto p-6">
 
-    <h1 class="text-2xl font-bold mb-6">Admin Dashboard</h1>
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+        <p class="text-gray-500 text-sm mt-1">
+            Verwaltung von Shop, Bestellungen und Benutzern
+        </p>
+    </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- SECTION: Shop & Inhalte -->
+    <h2 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3">
+        Shop & Inhalte
+    </h2>
 
-        <!-- Bestellungen -->
-        <a href="orders.php"
-           class="bg-white rounded-xl p-6 shadow-sm border hover:border-primary transition-colors">
-            <h2 class="text-lg font-bold mb-2">Bestellungen verwalten</h2>
-            <p class="text-gray-500 text-sm">
-                Alle Bestellungen aller Benutzer einsehen
-            </p>
-        </a>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
 
-        <!-- Produkte -->
         <a href="products.php"
-           class="bg-white rounded-xl p-6 shadow-sm border hover:border-primary transition-colors">
-            <h2 class="text-lg font-bold mb-2">Produkte verwalten</h2>
-            <p class="text-gray-500 text-sm">
-                Produkte anlegen, bearbeiten und löschen
-            </p>
+           class="group bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-primary text-3xl">inventory_2</span>
+                <div>
+                    <h3 class="font-bold text-lg">Produkte</h3>
+                    <p class="text-gray-500 text-sm">
+                        Produkte anlegen, bearbeiten und löschen
+                    </p>
+                </div>
+            </div>
         </a>
 
-        <!-- Kategorien (NEU) -->
         <a href="categories.php"
-           class="bg-white rounded-xl p-6 shadow-sm border hover:border-primary transition-colors">
-            <h2 class="text-lg font-bold mb-2">Kategorien verwalten</h2>
-            <p class="text-gray-500 text-sm">
-                Kategorien erstellen, bearbeiten und löschen
-            </p>
+           class="group bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-primary text-3xl">category</span>
+                <div>
+                    <h3 class="font-bold text-lg">Kategorien</h3>
+                    <p class="text-gray-500 text-sm">
+                        Kategorien verwalten und zuweisen
+                    </p>
+                </div>
+            </div>
         </a>
 
-        <!-- Benutzerverwaltung -->
+    </div>
+
+    <!-- SECTION: Bestellungen -->
+    <h2 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3">
+        Bestellungen
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+
+        <a href="orders.php"
+           class="group bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-primary text-3xl">receipt_long</span>
+                <div>
+                    <h3 class="font-bold text-lg">Bestellungen</h3>
+                    <p class="text-gray-500 text-sm">
+                        Alle Bestellungen und Lieferstatus
+                    </p>
+                </div>
+            </div>
+        </a>
+
+    </div>
+
+    <!-- SECTION: Benutzer -->
+    <h2 class="text-sm font-bold uppercase tracking-wider text-gray-500 mb-3">
+        Benutzer
+    </h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+
         <a href="users.php"
-           class="bg-white rounded-xl p-6 shadow-sm border hover:border-primary transition-colors">
-            <h2 class="text-lg font-bold mb-2">Benutzer verwalten</h2>
-            <p class="text-gray-500 text-sm">
-                Benutzer anzeigen, sperren und Rollen ändern
-            </p>
+           class="group bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition">
+            <div class="flex items-center gap-4">
+                <span class="material-symbols-outlined text-primary text-3xl">group</span>
+                <div>
+                    <h3 class="font-bold text-lg">Benutzer</h3>
+                    <p class="text-gray-500 text-sm">
+                        Rollen, Sperren und Verwaltung
+                    </p>
+                </div>
+            </div>
         </a>
 
     </div>
 
-    <div class="mt-8">
-        <a href="../public/index.php"
-           class="text-sm text-gray-500 hover:underline">
-            ← Zurück zum Shop
-        </a>
-    </div>
+    <!-- Back -->
+    <a href="../public/index.php"
+       class="text-sm text-gray-500 hover:underline">
+        ← Zurück zum Shop
+    </a>
 
 </div>
 

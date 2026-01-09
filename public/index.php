@@ -5,7 +5,7 @@ require_once "../includes/db.php";
 /* Kategorie-Filter */
 $activeCategory = isset($_GET["category"]) ? (int)$_GET["category"] : 0;
 
-/* Kategorien laden */
+/* Kategorien */
 $stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC");
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -17,7 +17,7 @@ if (isset($_SESSION["user_id"])) {
     $favorites = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-/* Produkte laden (mit Filter) */
+/* Produkte */
 if ($activeCategory > 0) {
     $stmt = $pdo->prepare("
         SELECT id, name, price, image
@@ -36,7 +36,7 @@ if ($activeCategory > 0) {
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
-<html class="light" lang="de">
+<html lang="de">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -61,9 +61,7 @@ tailwind.config = {
                 "surface-light": "#ffffff",
                 "surface-dark": "#1c2e22",
             },
-            fontFamily: {
-                display: ["Inter", "sans-serif"]
-            }
+            fontFamily: { display: ["Inter","sans-serif"] }
         }
     }
 }
@@ -71,8 +69,8 @@ tailwind.config = {
 
 <style>
 body { min-height: max(884px, 100dvh); }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display:none; }
+.no-scrollbar { scrollbar-width:none; }
 </style>
 </head>
 
@@ -82,18 +80,15 @@ body { min-height: max(884px, 100dvh); }
 
 <!-- Suche -->
 <div class="px-4 py-2">
-    <input
-        type="text"
-        placeholder="Suche nach Produkten..."
-        class="w-full h-12 rounded-lg px-4 bg-white dark:bg-surface-dark"
-    >
+    <input type="text"
+           placeholder="Suche nach Produkten..."
+           class="w-full h-12 rounded-lg px-4 bg-white dark:bg-surface-dark">
 </div>
 
-<!-- Kategorien Chips -->
+<!-- Kategorien -->
 <div class="w-full overflow-x-auto no-scrollbar pb-2">
     <div class="flex gap-3 px-4 py-2 min-w-max">
 
-        <!-- Alle -->
         <a href="index.php"
            class="flex h-9 items-center px-4 rounded-full text-sm font-medium border
            <?php echo $activeCategory === 0 ? "bg-primary text-black" : "bg-white dark:bg-surface-dark"; ?>">
@@ -113,34 +108,47 @@ body { min-height: max(884px, 100dvh); }
     </div>
 </div>
 
-<!-- Headline -->
-<div class="flex items-center justify-between px-4 pt-4 pb-2">
-    <h2 class="text-xl font-bold">Produkte</h2>
-</div>
-
-<?php if (empty($products)): ?>
-
-    <p class="px-4 text-gray-500">Keine Produkte vorhanden.</p>
-
-<?php else: ?>
-
-<!-- Produkt Grid (KOMPAKT) -->
+<!-- Produkte -->
 <div class="px-4 pb-4">
     <div class="grid grid-cols-2 gap-3">
 
         <?php foreach ($products as $product): ?>
             <?php
-            $isFavorite = in_array($product["id"], $favorites, true);
+                $productId = (int)$product["id"];
+                $isFav = in_array($productId, $favorites, true);
             ?>
-            <div class="group bg-white dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm">
+
+            <a href="product.php?id=<?php echo $productId; ?>"
+               class="group block bg-white dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
 
                 <!-- Bild -->
                 <div class="relative aspect-[4/3] overflow-hidden">
-                    <img
-                        src="<?php echo htmlspecialchars($product["image"]); ?>"
-                        class="w-full h-full object-cover transition-transform group-hover:scale-105"
-                        alt=""
-                    >
+
+                    <img src="<?php echo htmlspecialchars($product["image"]); ?>"
+                         class="w-full h-full object-cover transition-transform group-hover:scale-105"
+                         alt="">
+
+                    <!-- FAVORIT -->
+                    <?php if (isset($_SESSION["user_id"])): ?>
+                        <form action="favorite_toggle.php"
+                              method="post"
+                              onclick="event.stopPropagation();"
+                              class="absolute top-2 right-2">
+                            <input type="hidden" name="product_id"
+                                   value="<?php echo $productId; ?>">
+                            <button type="submit"
+                                    class="flex size-8 items-center justify-center rounded-full backdrop-blur shadow
+                                    <?php echo $isFav
+                                        ? 'bg-primary text-black'
+                                        : 'bg-white/90 text-gray-500 hover:text-primary'; ?>">
+                                <span class="material-symbols-outlined"
+                                      style="font-variation-settings:'FILL' <?php echo $isFav ? 1 : 0; ?>">
+                                    favorite
+                                </span>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+
                 </div>
 
                 <!-- Content -->
@@ -154,20 +162,25 @@ body { min-height: max(884px, 100dvh); }
                             <?php echo number_format($product["price"], 2, ",", "."); ?> €
                         </span>
 
-                        <a href="cart_add.php?id=<?php echo $product["id"]; ?>"
-                           class="flex size-8 items-center justify-center rounded-full bg-primary text-black">
-                            <span class="material-symbols-outlined" style="font-size:18px;">add</span>
-                        </a>
+                        <!-- Add to cart -->
+                        <form action="cart_add.php" method="post"
+                              onclick="event.stopPropagation();">
+                            <input type="hidden" name="product_id"
+                                   value="<?php echo $productId; ?>">
+                            <button type="submit"
+                                    class="flex size-8 items-center justify-center rounded-full bg-primary text-black hover:bg-green-400 transition-colors">
+                                <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
 
-            </div>
+            </a>
+
         <?php endforeach; ?>
 
     </div>
 </div>
-
-<?php endif; ?>
 
 <?php require "../includes/footer.php"; ?>
 <?php require "../includes/bottom_nav.php"; ?>

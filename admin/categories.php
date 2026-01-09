@@ -185,8 +185,8 @@ tailwind.config = {
                         <?php echo htmlspecialchars($cat["description"]); ?>
                     </td>
                     <td class="p-3 text-right space-x-3">
-                        <a href="categories.php?edit=<?php echo $cat["id"]; ?>"
-                           class="text-blue-600 hover:underline">
+                        <a href="categories_edit.php?id=<?php echo $cat['id']; ?>"
+                            class="text-primary font-medium hover:underline">
                             Bearbeiten
                         </a>
                         <a href="categories.php?delete=<?php echo $cat["id"]; ?>"
