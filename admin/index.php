@@ -38,12 +38,19 @@ tailwind.config = {
 
 <div class="max-w-5xl mx-auto p-6">
 
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold">Admin Dashboard</h1>
-        <p class="text-gray-500 text-sm mt-1">
-            Verwaltung von Shop, Bestellungen und Benutzern
-        </p>
+    <!-- TOP BAR -->
+    <div class="flex items-center gap-3 mb-6">
+        <a href="../public/profile.php"
+           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-200 transition">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+
+        <div>
+            <h1 class="text-2xl font-bold">Admin Dashboard</h1>
+            <p class="text-gray-500 text-sm">
+                Verwaltung von Shop, Bestellungen und Benutzern
+            </p>
+        </div>
     </div>
 
     <!-- SECTION: Shop & Inhalte -->
@@ -125,7 +132,7 @@ tailwind.config = {
 
     </div>
 
-    <!-- Back -->
+    <!-- Back to Shop -->
     <a href="../public/index.php"
        class="text-sm text-gray-500 hover:underline">
         ← Zurück zum Shop
