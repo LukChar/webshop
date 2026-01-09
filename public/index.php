@@ -101,7 +101,7 @@ function renderProductGrid(array $products, array $favorites): string {
 
                         <div class="flex items-center justify-between mt-1">
                             <span class="font-bold">
-                                <?php echo number_format($product["price"], 2, ",", "."); ?> â‚¬
+                                <?php echo number_format($product["price"], 2, ",", "."); ?> &euro;
                             </span>
 
                             <form action="cart_add.php" method="post"
