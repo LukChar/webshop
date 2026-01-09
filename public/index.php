@@ -169,7 +169,7 @@ body { min-height: max(884px, 100dvh); }
 </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark text-[#111813] dark:text-[#e0e6e2] font-display pb-24">
+<body class="bg-background-light dark:bg-background-dark text-[#111813] dark:text-[#e0e6e2] font-display pt-16 pb-24">
 
 <?php require "../includes/header.php"; ?>
 

@@ -7,7 +7,7 @@ $cartCount = isset($_SESSION["cart"]) ? array_sum($_SESSION["cart"]) : 0;
 $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
 ?>
 
-<div class="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
+<div class="fixed top-0 left-0 right-0 w-full z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-800">
     <div class="relative h-16">
 
         <!-- 🔹 EBENE 1: TITEL (KLICKBAR, ZENTRIERT, BLOCKIERT NICHT) -->
