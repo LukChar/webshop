@@ -83,7 +83,7 @@ body { min-height: max(884px, 100dvh); }
 
 <?php require_once "../includes/header.php"; ?>
 
-<main class="max-w-md mx-auto">
+<main class="max-w-md mx-auto pt-16">
 
 <!-- AVATAR -->
 <div class="flex flex-col items-center pt-8">

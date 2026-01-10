@@ -69,11 +69,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 }
 
-/* Produkte laden */
+/* Produkte + Bestand laden */
 $stmt = $pdo->query("
-    SELECT p.id, p.name, p.price, c.name AS category
+    SELECT 
+        p.id,
+        p.name,
+        p.price,
+        c.name AS category,
+        COALESCE(s.quantity, 0) AS stock_qty
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN stock s ON s.product_id = p.id
     ORDER BY p.id DESC
 ");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -200,6 +206,19 @@ tailwind.config = {
     <?php endif; ?>
 
     <?php foreach ($products as $product): ?>
+        <?php
+            $qty = (int)$product["stock_qty"];
+            if ($qty === 0) {
+                $badgeText = "Ausverkauft";
+                $badgeColor = "bg-red-500";
+            } elseif ($qty <= 5) {
+                $badgeText = "Geringer Bestand";
+                $badgeColor = "bg-orange-400";
+            } else {
+                $badgeText = "Auf Lager";
+                $badgeColor = "bg-primary";
+            }
+        ?>
         <div class="bg-surface rounded-xl p-4 shadow-sm flex justify-between items-center">
             <div class="min-w-0">
                 <p class="font-semibold truncate">
@@ -208,6 +227,13 @@ tailwind.config = {
                 <p class="text-xs text-gray-500">
                     <?php echo htmlspecialchars($product["category"] ?? "—"); ?>
                 </p>
+
+                <!-- STOCK BADGE -->
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full <?php echo $badgeColor; ?>"></span>
+                    <span class="text-xs text-gray-600"><?php echo $badgeText; ?></span>
+                </div>
+
                 <p class="text-sm font-bold mt-1">
                     <?php echo number_format((float)$product["price"], 2, ",", "."); ?> €
                 </p>
