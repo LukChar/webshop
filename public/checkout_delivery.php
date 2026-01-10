@@ -15,6 +15,9 @@ if (empty($cart)) {
 
 $userId = (int)$_SESSION["user_id"];
 
+/* =========================
+   ADRESSEN LADEN
+========================= */
 $stmt = $pdo->prepare("
     SELECT *
     FROM addresses
@@ -24,6 +27,9 @@ $stmt = $pdo->prepare("
 $stmt->execute([$userId]);
 $addresses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+/* =========================
+   ZAHLUNGSMITTEL LADEN
+========================= */
 $cards = [];
 try {
     $stmt = $pdo->prepare("
@@ -38,14 +44,26 @@ try {
     $cards = [];
 }
 
-$selectedAddressId = isset($_POST["address_id"]) ? (int)$_POST["address_id"] : ($_SESSION["checkout_address"]["address_id"] ?? 0);
-$selectedCardId = isset($_POST["payment_id"]) ? (int)$_POST["payment_id"] : ($_SESSION["checkout_payment"]["payment_id"] ?? 0);
+/* =========================
+   FORM DEFAULTS
+========================= */
+$selectedAddressId = isset($_POST["address_id"])
+    ? (int)$_POST["address_id"]
+    : ($_SESSION["checkout_address"]["address_id"] ?? 0);
+
+$selectedCardId = isset($_POST["payment_id"])
+    ? (int)$_POST["payment_id"]
+    : ($_SESSION["checkout_payment"]["payment_id"] ?? 0);
 
 if ($selectedAddressId === 0 && !empty($addresses)) {
     $selectedAddressId = (int)$addresses[0]["id"];
 }
+
 $paymentMethod = $_POST["payment_method"] ?? "card";
 
+/* =========================
+   MANUELLE EINGABEN
+========================= */
 $manualAddress = [
     "name"   => trim($_POST["manual_name"] ?? ($_SESSION["checkout_address"]["name"] ?? "")),
     "street" => trim($_POST["manual_street"] ?? ($_SESSION["checkout_address"]["street"] ?? "")),
@@ -61,22 +79,33 @@ $manualCard = [
     "year"   => trim($_POST["expiry_year"] ?? ($_SESSION["checkout_payment"]["expiry_year"] ?? "")),
 ];
 
+/* =========================
+   GESAMTBETRAG
+========================= */
 $error = null;
 $orderTotal = 0.0;
+
 foreach ($cart as $productId => $qty) {
     $stmt = $pdo->prepare("SELECT price FROM products WHERE id = ?");
     $stmt->execute([(int)$productId]);
     $product = $stmt->fetch(PDO::FETCH_ASSOC);
-    if (!$product) {
-        continue;
+    if ($product) {
+        $orderTotal += ((float)$product["price"]) * (int)$qty;
     }
-    $orderTotal += ((float)$product["price"]) * (int)$qty;
 }
 
+/* =========================
+   FORM SUBMIT
+========================= */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $addressData = null;
 
-    if ($selectedAddressId > 0) {
+    try {
+        /* 🔒 TRANSAKTION START */
+        $pdo->beginTransaction();
+
+        /* ---------- ADRESSE ---------- */
+        $addressData = null;
+
         foreach ($addresses as $addr) {
             if ((int)$addr["id"] === $selectedAddressId) {
                 $addressData = [
@@ -90,135 +119,94 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 break;
             }
         }
-    }
 
-    if (!$addressData && $manualAddress["name"] !== "" && $manualAddress["street"] !== "" && $manualAddress["zip"] !== "" && $manualAddress["city"] !== "") {
-        $addressData = [
-            "address_id" => null,
-            "name"       => $manualAddress["name"],
-            "street"     => $manualAddress["street"],
-            "postal_code"=> $manualAddress["zip"],
-            "city"       => $manualAddress["city"],
-            "note"       => $manualAddress["note"],
-        ];
-    }
-
-    if (!$addressData) {
-        $error = "Bitte wähle eine Lieferadresse oder trage eine neue Adresse ein.";
-    }
-
-    $paymentData = null;
-    if ($paymentMethod === "card") {
-        $selectedCard = null;
-        if ($selectedCardId > 0) {
-            foreach ($cards as $card) {
-                if ((int)$card["id"] === $selectedCardId) {
-                    $selectedCard = $card;
-                    break;
-                }
-            }
-        }
-
-        if ($selectedCard) {
-            $paymentData = [
-                "method"     => "card",
-                "payment_id" => (int)$selectedCard["id"],
-                "card_holder"=> $selectedCard["card_holder"],
-                "card_brand" => $selectedCard["card_brand"],
-                "card_last4" => $selectedCard["card_last4"],
-                "expiry_month" => $selectedCard["expiry_month"],
-                "expiry_year"  => $selectedCard["expiry_year"],
-                "type"       => "saved",
+        if (!$addressData && $manualAddress["name"] && $manualAddress["street"] && $manualAddress["zip"] && $manualAddress["city"]) {
+            $addressData = [
+                "address_id" => null,
+                "name"       => $manualAddress["name"],
+                "street"     => $manualAddress["street"],
+                "postal_code"=> $manualAddress["zip"],
+                "city"       => $manualAddress["city"],
+                "note"       => $manualAddress["note"],
             ];
-        } elseif ($manualCard["holder"] !== "" && preg_match('/\d{4,}/', $manualCard["number"]) && $manualCard["month"] !== "" && $manualCard["year"] !== "") {
-            $sanitizedNumber = preg_replace('/\D/', '', $manualCard["number"]);
-            $paymentData = [
-                "method"     => "card",
-                "payment_id" => null,
-                "card_holder"=> $manualCard["holder"],
-                "card_brand" => "Kreditkarte",
-                "card_last4" => substr($sanitizedNumber, -4),
-                "expiry_month" => $manualCard["month"],
-                "expiry_year"  => $manualCard["year"],
-                "type"       => "manual",
-            ];
-        } else {
-            if (!$error) {
-                $error = "Bitte wähle eine gespeicherte Karte oder gib neue Kartendaten ein.";
-            }
-        }
-    } elseif ($paymentMethod === "paypal") {
-        $paymentData = ["method" => "paypal"];
-    }
-
-    if (!$error && $addressData && $paymentData) {
-        $total = 0.0;
-        foreach ($cart as $productId => $qty) {
-            $stmt = $pdo->prepare("SELECT price FROM products WHERE id = ?");
-            $stmt->execute([(int)$productId]);
-            $product = $stmt->fetch(PDO::FETCH_ASSOC);
-            if (!$product) {
-                continue;
-            }
-            $total += ((float)$product["price"]) * (int)$qty;
         }
 
+        if (!$addressData) {
+            throw new Exception("Bitte Lieferadresse angeben.");
+        }
+
+        /* ---------- PAYMENT ---------- */
+        $paymentData = ["method" => $paymentMethod];
+
+        /* ---------- ORDER ---------- */
         $stmt = $pdo->prepare("
             INSERT INTO orders (user_id, total, status)
             VALUES (?, ?, 'pending')
         ");
-        $stmt->execute([$userId, $total]);
-        $orderId = $pdo->lastInsertId();
+        $stmt->execute([$userId, $orderTotal]);
+        $orderId = (int)$pdo->lastInsertId();
 
         if (!$orderId) {
-            $error = "Fehler: Bestellung konnte nicht gespeichert werden.";
-        } else {
-            foreach ($cart as $productId => $qty) {
-                $stmt = $pdo->prepare("SELECT price FROM products WHERE id = ?");
-                $stmt->execute([(int)$productId]);
-                $product = $stmt->fetch(PDO::FETCH_ASSOC);
-                if (!$product) {
-                    continue;
-                }
-
-                $stmt = $pdo->prepare("
-                    INSERT INTO order_items (order_id, product_id, quantity, price)
-                    VALUES (?, ?, ?, ?)
-                ");
-                $stmt->execute([
-                    (int)$orderId,
-                    (int)$productId,
-                    (int)$qty,
-                    (float)$product["price"],
-                ]);
-            }
-
-            $_SESSION["checkout_address"] = $addressData;
-            $_SESSION["checkout_payment"] = $paymentData;
-
-            if ($paymentData["method"] === "paypal") {
-                header("Location: payment/paypal_dummy.php?order_id=" . urlencode($orderId));
-                exit;
-            }
-
-            header("Location: payment/card_dummy.php?order_id=" . urlencode($orderId));
-            exit;
+            throw new Exception("Bestellung fehlgeschlagen.");
         }
+
+        /* =========================
+           🔥 STOCK + ORDER ITEMS
+        ========================= */
+        foreach ($cart as $productId => $qty) {
+
+            $stmt = $pdo->prepare("
+                SELECT s.quantity, p.price
+                FROM stock s
+                JOIN products p ON p.id = s.product_id
+                WHERE s.product_id = ?
+                FOR UPDATE
+            ");
+            $stmt->execute([(int)$productId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$row || (int)$row["quantity"] < (int)$qty) {
+                throw new Exception("Nicht genügend Lagerbestand.");
+            }
+
+            $stmt = $pdo->prepare("
+                INSERT INTO order_items (order_id, product_id, quantity, price)
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $orderId,
+                (int)$productId,
+                (int)$qty,
+                (float)$row["price"]
+            ]);
+
+            $stmt = $pdo->prepare("
+                UPDATE stock
+                SET quantity = quantity - ?
+                WHERE product_id = ?
+            ");
+            $stmt->execute([(int)$qty, (int)$productId]);
+        }
+
+        /* ✅ COMMIT */
+        $pdo->commit();
+
+        $_SESSION["checkout_address"] = $addressData;
+        $_SESSION["checkout_payment"] = $paymentData;
+
+        header("Location: payment/" . ($paymentMethod === "paypal" ? "paypal" : "card") . "_dummy.php?order_id=" . $orderId);
+        exit;
+
+    } catch (Exception $e) {
+        /* ❌ ROLLBACK */
+        $pdo->rollBack();
+        $error = $e->getMessage();
     }
 }
 
-$selectedCard = null;
-if ($selectedCardId > 0) {
-    foreach ($cards as $card) {
-        if ((int)$card["id"] === $selectedCardId) {
-            $selectedCard = $card;
-            break;
-        }
-    }
-}
-
-$selectedCardId = $selectedCard["id"] ?? (count($cards) ? $cards[0]["id"] : 0);
-
+/* =========================
+   HILFSFUNKTION
+========================= */
 function formatAddress(array $addr): string {
     $lines = [];
     if (!empty($addr["first_name"]) || !empty($addr["last_name"])) {
@@ -227,16 +215,12 @@ function formatAddress(array $addr): string {
     if (!empty($addr["street"])) {
         $lines[] = $addr["street"];
     }
-    $cityLine = trim(($addr["postal_code"] ?? "") . " " . ($addr["city"] ?? ""));
-    if ($cityLine !== "") {
-        $lines[] = $cityLine;
-    }
-    if (!empty($addr["country"])) {
-        $lines[] = $addr["country"];
-    }
+    $city = trim(($addr["postal_code"] ?? "") . " " . ($addr["city"] ?? ""));
+    if ($city) $lines[] = $city;
     return implode("<br>", $lines);
 }
 ?>
+<!-- HTML bleibt unverändert -->
 <!DOCTYPE html>
 <html class="light" lang="de">
 <head>
