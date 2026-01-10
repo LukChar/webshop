@@ -88,6 +88,20 @@ body { min-height: max(884px, 100dvh); }
         <?php endif; ?>
     </div>
 
+    <?php if ($hasFavorites): ?>
+        <div class="px-4 pb-4">
+            <form method="post" action="favorites_add_all_to_cart.php">
+                <button
+                    type="submit"
+                    class="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-sm font-semibold text-[#0b1f12] shadow-sm shadow-primary/40 hover:brightness-95 transition"
+                >
+                    <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
+                    Alle Favoriten in den Warenkorb legen
+                </button>
+            </form>
+        </div>
+    <?php endif; ?>
+
     <?php if (empty($favorites)): ?>
 
         <p class="px-4 text-gray-500 text-sm">
