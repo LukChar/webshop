@@ -71,14 +71,15 @@ body { min-height: max(884px, 100dvh); }
 <main class="max-w-md mx-auto">
 
     <!-- Headline + Aktion -->
-    <div class="px-4 pt-6 pb-4 flex items-center justify-between">
+    <?php $hasFavorites = !empty($favorites); ?>
+    <div class="px-4 pt-6 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 class="text-xl font-bold">Meine Favoriten</h1>
 
-        <?php if (!empty($favorites)): ?>
-            <form method="post" action="favorites_add_all_to_cart.php">
+        <?php if ($hasFavorites): ?>
+            <form method="post" action="favorites_add_all_to_cart.php" class="w-full sm:w-auto">
                 <button
                     type="submit"
-                    class="flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition bg-primary text-[#0b1f12] shadow-primary/40 hover:brightness-95"
                 >
                     <span class="material-symbols-outlined text-[20px]">shopping_cart</span>
                     Alle in den Warenkorb

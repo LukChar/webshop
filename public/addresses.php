@@ -12,17 +12,28 @@ if (!isset($_SESSION["user_id"])) {
 
 require_once "../includes/db.php";
 
-$userId = $_SESSION["user_id"];
+$userId = (int)$_SESSION["user_id"];
+
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["set_default"])) {
+    $addressId = (int)($_POST["address_id"] ?? 0);
+    if ($addressId > 0) {
+        $pdo->prepare("UPDATE addresses SET is_default = 0 WHERE user_id = ?")->execute([$userId]);
+        $stmt = $pdo->prepare("UPDATE addresses SET is_default = 1 WHERE id = ? AND user_id = ?");
+        $stmt->execute([$addressId, $userId]);
+    }
+    header("Location: addresses.php");
+    exit;
+}
 
 /* Adressen laden */
 $stmt = $pdo->prepare("
     SELECT *
     FROM addresses
     WHERE user_id = ?
-    ORDER BY created_at DESC
+    ORDER BY is_default DESC, created_at DESC
 ");
 $stmt->execute([$userId]);
-$addresses = $stmt->fetchAll();
+$addresses = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 <!DOCTYPE html>
 <html lang="de">
@@ -69,72 +80,84 @@ body { min-height: max(884px, 100dvh); }
 
 <div class="max-w-md mx-auto min-h-screen flex flex-col">
 
-<!-- HEADER -->
-<header class="sticky top-0 z-10 flex items-center justify-between bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md p-4 border-b border-border-light dark:border-border-dark">
-    <a href="/webshop/public/profile.php"
-       class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
-        <span class="material-symbols-outlined">arrow_back</span>
-    </a>
-    <h1 class="text-lg font-bold">Lieferadressen</h1>
-    <div class="size-10"></div>
-</header>
+    <!-- HEADER -->
+    <header class="sticky top-0 z-10 flex items-center justify-between bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md p-4 border-b border-border-light dark:border-border-dark">
+        <a href="/webshop/public/profile.php"
+           class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </a>
+        <h1 class="text-lg font-bold">Lieferadressen</h1>
+        <div class="size-10"></div>
+    </header>
 
-<main class="flex-1 px-4 pb-32 pt-4 space-y-4">
+    <main class="flex-1 px-4 pt-6 pb-28 space-y-4">
 
-    <!-- BUTTON: NEUE ADRESSE -->
-    <a href="/webshop/public/address_edit.php"
-       class="flex items-center justify-between p-4 w-full
-              bg-surface-light dark:bg-surface-dark
-              rounded-2xl shadow-sm
-              border border-border-light dark:border-border-dark
-              hover:bg-gray-50 dark:hover:bg-white/5
-              transition-colors">
-
-        <div class="flex items-center gap-3">
-            <div class="bg-green-100 dark:bg-green-900/30 p-2 rounded-full">
-                <span class="material-symbols-outlined text-green-700 dark:text-green-400 text-[20px]">
-                    add_location
-                </span>
-            </div>
-            <span class="font-medium text-[#111813] dark:text-white">
-                Neue Lieferadresse hinzufügen
-            </span>
+        <div class="space-y-2">
+            <p class="text-sm text-gray-600">
+                Hier kannst du deine Lieferadressen verwalten, bearbeiten oder eine neue Adresse speichern.
+            </p>
+            <a href="/webshop/public/address_edit.php"
+               class="flex items-center justify-center gap-2 rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-4 py-3 font-semibold text-sm shadow-sm hover:border-primary hover:text-primary transition-all">
+                <span class="material-symbols-outlined text-primary">add_location</span>
+                Neue Adresse hinzufügen
+            </a>
         </div>
 
-        <span class="material-symbols-outlined text-gray-400">
-            chevron_right
-        </span>
-    </a>
+        <?php if (empty($addresses)): ?>
 
-    <!-- ADRESSEN -->
-    <?php if (empty($addresses)): ?>
+            <p class="text-gray-500 text-sm text-center mt-6">
+                Du hast noch keine Lieferadresse gespeichert.
+            </p>
 
-        <p class="text-gray-500 text-sm text-center mt-6">
-            Du hast noch keine Lieferadresse gespeichert.
-        </p>
+        <?php else: ?>
 
-    <?php else: ?>
+            <?php foreach ($addresses as $address): ?>
+                <?php $isDefault = (int)($address["is_default"] ?? 0) === 1; ?>
+                <div class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark space-y-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex-1 space-y-1">
+                            <p class="font-semibold text-[#111813] dark:text-white">
+                                <?= htmlspecialchars(trim(($address["first_name"] ?? "") . " " . ($address["last_name"] ?? ""))) ?>
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                                <?= htmlspecialchars($address["street"]) ?><br>
+                                <?= htmlspecialchars($address["postal_code"] . " " . $address["city"]) ?><br>
+                                <?= htmlspecialchars($address["country"]) ?>
+                            </p>
+                        </div>
+                        <?php if ($isDefault): ?>
+                            <span class="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.35em] text-primary bg-primary/10 rounded-full">Standard</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-500">
+                        <span><?= htmlspecialchars($address["created_at"] ?? "") ?></span>
+                        <div class="flex items-center gap-2">
+                            <a href="/webshop/public/address_edit.php?id=<?= htmlspecialchars($address["id"]) ?>"
+                               class="inline-flex items-center gap-1 rounded-full border border-border-light dark:border-border-dark px-3 py-1 text-xs font-semibold text-[#111813] dark:text-white hover:border-primary hover:text-primary transition-colors">
+                                <span class="material-symbols-outlined text-[16px]">edit</span>
+                                Bearbeiten
+                            </a>
+                            <?php if (!$isDefault): ?>
+                                <form method="post" class="inline">
+                                    <input type="hidden" name="address_id" value="<?= htmlspecialchars($address["id"]) ?>">
+                                    <button type="submit" name="set_default"
+                                            class="inline-flex items-center gap-1 rounded-full border border-border-light dark:border-border-dark px-3 py-1 text-xs font-semibold text-[#111813] dark:text-white hover:border-primary hover:text-primary transition-colors">
+                                        <span class="material-symbols-outlined text-[16px]">star</span>
+                                        Als Standard
+                                    </button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
 
-        <?php foreach ($addresses as $address): ?>
+            <?php endforeach; ?>
 
-            <div class="bg-surface-light dark:bg-surface-dark p-4 rounded-xl shadow-sm border border-border-light dark:border-border-dark">
-                <p class="font-semibold">
-                    <?php echo htmlspecialchars($address["first_name"] . " " . $address["last_name"]); ?>
-                </p>
-                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    <?php echo htmlspecialchars($address["street"]); ?><br>
-                    <?php echo htmlspecialchars($address["postal_code"] . " " . $address["city"]); ?><br>
-                    <?php echo htmlspecialchars($address["country"]); ?>
-                </p>
-            </div>
+        <?php endif; ?>
 
-        <?php endforeach; ?>
+    </main>
 
-    <?php endif; ?>
-
-</main>
-
-<?php require_once "../includes/bottom_nav.php"; ?>
+    <?php require_once "../includes/bottom_nav.php"; ?>
 
 </div>
 </body>
