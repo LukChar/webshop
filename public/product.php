@@ -9,11 +9,18 @@ if ($productId <= 0) {
     exit;
 }
 
-/* Produkt laden */
+/* Produkt laden inkl. Bestand */
 $stmt = $pdo->prepare("
-    SELECT id, name, price, image, description
-    FROM products
-    WHERE id = ?
+    SELECT
+        p.id,
+        p.name,
+        p.price,
+        p.image,
+        p.description,
+        COALESCE(s.quantity, 0) AS stock
+    FROM products p
+    LEFT JOIN stock s ON s.product_id = p.id
+    WHERE p.id = ?
     LIMIT 1
 ");
 $stmt->execute([$productId]);
@@ -23,6 +30,7 @@ if (!$product) {
     echo "Produkt nicht gefunden.";
     exit;
 }
+$stockQty = (int)$product["stock"];
 
 /* Warenkorb-Anzahl */
 $cartCount = isset($_SESSION["cart"]) ? array_sum($_SESSION["cart"]) : 0;
@@ -223,38 +231,62 @@ function pct($part, $total) {
 <!-- Content -->
 <div class="px-5 flex flex-col gap-6">
 
-    <!-- Header Info -->
-    <div class="flex flex-col gap-2">
-        <div class="flex justify-between items-start">
-            <h1 class="text-[#111813] dark:text-white text-[28px] font-bold leading-tight tracking-tight">
-                <?php echo htmlspecialchars($product["name"]); ?>
-            </h1>
-        </div>
-
-        <?php if ($avgRating !== null): ?>
-            <?php [$full, $half, $empty] = formatStars($avgRating); ?>
-            <div class="flex items-center gap-2">
-                <div class="flex text-yellow-500">
-                    <?php for ($i=0; $i<$full; $i++): ?>
-                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
-                    <?php endfor; ?>
-                    <?php if ($half === 1): ?>
-                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star_half</span>
-                    <?php endif; ?>
-                    <?php for ($i=0; $i<$empty; $i++): ?>
-                        <span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1; opacity: 0.25;">star</span>
-                    <?php endfor; ?>
-                </div>
-                <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                    <?php echo number_format($avgRating, 1, ",", "."); ?> (<?php echo $reviewCount; ?> Bewertungen)
-                </span>
-            </div>
-        <?php else: ?>
-            <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">
-                Noch keine Bewertungen
-            </div>
-        <?php endif; ?>
+   <!-- Header Info -->
+<div class="flex flex-col gap-2">
+    <div class="flex justify-between items-start">
+        <h1 class="text-[#111813] dark:text-white text-[28px] font-bold leading-tight tracking-tight">
+            <?php echo htmlspecialchars($product["name"]); ?>
+        </h1>
     </div>
+
+    <?php if ($stockQty <= 0): ?>
+        <div class="flex items-center gap-2 text-sm font-semibold text-red-600">
+            <span class="w-2 h-2 rounded-full bg-red-500"></span>
+            Ausverkauft
+        </div>
+    <?php elseif ($stockQty <= 5): ?>
+        <div class="flex items-center gap-2 text-sm font-semibold text-orange-500">
+            <span class="w-2 h-2 rounded-full bg-orange-400"></span>
+            Geringer Bestand
+        </div>
+    <?php else: ?>
+        <div class="flex items-center gap-2 text-sm font-semibold text-green-600">
+            <span class="w-2 h-2 rounded-full bg-primary"></span>
+            Auf Lager
+        </div>
+    <?php endif; ?>
+
+    <?php if ($avgRating !== null): ?>
+        <?php [$full, $half, $empty] = formatStars($avgRating); ?>
+        <div class="flex items-center gap-2">
+            <div class="flex text-yellow-500">
+                <?php for ($i = 0; $i < $full; $i++): ?>
+                    <span class="material-symbols-outlined text-[18px]"
+                          style="font-variation-settings:'FILL' 1;">star</span>
+                <?php endfor; ?>
+
+                <?php if ($half === 1): ?>
+                    <span class="material-symbols-outlined text-[18px]"
+                          style="font-variation-settings:'FILL' 1;">star_half</span>
+                <?php endif; ?>
+
+                <?php for ($i = 0; $i < $empty; $i++): ?>
+                    <span class="material-symbols-outlined text-[18px]"
+                          style="font-variation-settings:'FILL' 1; opacity:0.25;">star</span>
+                <?php endfor; ?>
+            </div>
+
+            <span class="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                <?php echo number_format($avgRating, 1, ",", "."); ?>
+                (<?php echo $reviewCount; ?> Bewertungen)
+            </span>
+        </div>
+    <?php else: ?>
+        <div class="text-sm text-gray-500 dark:text-gray-400 font-medium">
+            Noch keine Bewertungen
+        </div>
+    <?php endif; ?>
+</div>
 
     <!-- Price Card -->
     <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-surface-light dark:bg-surface-dark p-5 shadow-sm">
@@ -520,10 +552,16 @@ function pct($part, $total) {
         </div>
 
         <button type="submit"
-                class="flex-1 bg-primary active:bg-[#0fd650] text-[#111813] font-bold text-base rounded-lg shadow-lg shadow-primary/20 flex items-center justify-center gap-2 h-12 transition-transform active:scale-[0.98]">
-            <span class="material-symbols-outlined">shopping_bag</span>
-            In den Warenkorb
-        </button>
+            <?php if ($stockQty <= 0): ?>disabled<?php endif; ?>
+                class="flex-1 font-bold text-base rounded-lg shadow-lg flex items-center justify-center gap-2 h-12
+            <?php echo $stockQty <= 0
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                : 'bg-primary active:bg-[#0fd650] text-[#111813] shadow-primary/20 active:scale-[0.98]';
+            ?>"
+        >
+    <span class="material-symbols-outlined">shopping_bag</span>
+    In den Warenkorb
+</button>
     </form>
     <div class="h-1"></div>
 </div>

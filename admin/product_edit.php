@@ -24,6 +24,16 @@ if (!$product) {
     exit;
 }
 
+/* Stock laden */
+$stmt = $pdo->prepare("
+    SELECT quantity
+    FROM stock
+    WHERE product_id = ?
+");
+$stmt->execute([$productId]);
+$stockRow = $stmt->fetch(PDO::FETCH_ASSOC);
+$stock = $stockRow ? (int)$stockRow["quantity"] : 0;
+
 /* Kategorien laden */
 $stmt = $pdo->query("
     SELECT id, name
@@ -39,13 +49,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $price = trim($_POST["price"] ?? "");
     $description = trim($_POST["description"] ?? "");
     $categoryId = ($_POST["category_id"] ?? "") !== "" ? (int)$_POST["category_id"] : null;
+    $stock = (int)($_POST["stock"] ?? 0);
 
     if ($name === "" || $price === "" || $description === "") {
         $message = "Bitte alle Pflichtfelder ausfüllen.";
     } elseif (!is_numeric($price)) {
         $message = "Preis muss eine Zahl sein.";
+    } elseif ($stock < 0) {
+        $message = "Bestand darf nicht negativ sein.";
     } else {
 
+        /* Produkt aktualisieren */
         $stmt = $pdo->prepare("
             UPDATE products
             SET name = ?, price = ?, description = ?, category_id = ?
@@ -59,10 +73,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $productId
         ]);
 
+        /* Stock aktualisieren (UPSERT) */
+        $stmt = $pdo->prepare("
+            INSERT INTO stock (product_id, quantity)
+            VALUES (?, ?)
+            ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)
+        ");
+        $stmt->execute([$productId, $stock]);
+
         $message = "Produkt erfolgreich aktualisiert.";
 
-        /* Produkt neu laden (für sofortige Anzeige) */
-        $stmt->execute([$name, $price, $description, $categoryId, $productId]);
+        /* Lokale Werte aktualisieren */
         $product["name"] = $name;
         $product["price"] = $price;
         $product["description"] = $description;
@@ -127,25 +148,23 @@ tailwind.config = {
 
         <label class="block">
             <span class="text-sm font-medium">Produktname *</span>
-            <input
-                type="text"
-                name="name"
-                required
-                value="<?php echo htmlspecialchars($product["name"]); ?>"
-                class="w-full h-12 rounded-lg border p-3"
-            >
+            <input type="text" name="name" required
+                   value="<?php echo htmlspecialchars($product["name"]); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
         </label>
 
         <label class="block">
             <span class="text-sm font-medium">Preis (€) *</span>
-            <input
-                type="number"
-                step="0.01"
-                name="price"
-                required
-                value="<?php echo htmlspecialchars($product["price"]); ?>"
-                class="w-full h-12 rounded-lg border p-3"
-            >
+            <input type="number" step="0.01" name="price" required
+                   value="<?php echo htmlspecialchars($product["price"]); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
+        </label>
+
+        <label class="block">
+            <span class="text-sm font-medium">Bestand *</span>
+            <input type="number" min="0" name="stock" required
+                   value="<?php echo htmlspecialchars((string)$stock); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
         </label>
 
         <label class="block">
@@ -153,7 +172,7 @@ tailwind.config = {
             <select name="category_id" class="w-full h-12 rounded-lg border p-3">
                 <option value="">– Keine Kategorie –</option>
                 <?php foreach ($categories as $cat): ?>
-                    <option value="<?php echo $cat["id"]; ?>"
+                    <option value="<?php echo (int)$cat["id"]; ?>"
                         <?php if ((int)$cat["id"] === (int)$product["category_id"]) echo "selected"; ?>>
                         <?php echo htmlspecialchars($cat["name"]); ?>
                     </option>
@@ -163,18 +182,14 @@ tailwind.config = {
 
         <label class="block">
             <span class="text-sm font-medium">Beschreibung *</span>
-            <textarea
-                name="description"
-                rows="4"
-                required
-                class="w-full rounded-lg border p-3"><?php
-                    echo htmlspecialchars($product["description"]);
-                ?></textarea>
+            <textarea name="description" rows="4" required
+                      class="w-full rounded-lg border p-3"><?php
+                echo htmlspecialchars($product["description"]);
+            ?></textarea>
         </label>
 
-        <button
-            type="submit"
-            class="w-full h-12 bg-primary font-bold rounded-lg text-[#102216]">
+        <button type="submit"
+                class="w-full h-12 bg-primary font-bold rounded-lg text-[#102216]">
             Änderungen speichern
         </button>
 

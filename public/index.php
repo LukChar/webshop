@@ -19,36 +19,40 @@ if (isset($_SESSION["user_id"])) {
     $favorites = $stmt->fetchAll(PDO::FETCH_COLUMN);
 }
 
-/* Produkte */
+/* Produkte + Stock */
 if ($activeCategory > 0 && $search !== "") {
     $stmt = $pdo->prepare("
-        SELECT id, name, price, image
-        FROM products
-        WHERE category_id = ? AND name LIKE ?
-        ORDER BY id DESC
+        SELECT p.id, p.name, p.price, p.image, COALESCE(s.quantity, 0) AS stock
+        FROM products p
+        LEFT JOIN stock s ON s.product_id = p.id
+        WHERE p.category_id = ? AND p.name LIKE ?
+        ORDER BY p.id DESC
     ");
     $stmt->execute([$activeCategory, "%" . $search . "%"]);
 } elseif ($activeCategory > 0) {
     $stmt = $pdo->prepare("
-        SELECT id, name, price, image
-        FROM products
-        WHERE category_id = ?
-        ORDER BY id DESC
+        SELECT p.id, p.name, p.price, p.image, COALESCE(s.quantity, 0) AS stock
+        FROM products p
+        LEFT JOIN stock s ON s.product_id = p.id
+        WHERE p.category_id = ?
+        ORDER BY p.id DESC
     ");
     $stmt->execute([$activeCategory]);
 } elseif ($search !== "") {
     $stmt = $pdo->prepare("
-        SELECT id, name, price, image
-        FROM products
-        WHERE name LIKE ?
-        ORDER BY id DESC
+        SELECT p.id, p.name, p.price, p.image, COALESCE(s.quantity, 0) AS stock
+        FROM products p
+        LEFT JOIN stock s ON s.product_id = p.id
+        WHERE p.name LIKE ?
+        ORDER BY p.id DESC
     ");
     $stmt->execute(["%" . $search . "%"]);
 } else {
     $stmt = $pdo->query("
-        SELECT id, name, price, image
-        FROM products
-        ORDER BY id DESC
+        SELECT p.id, p.name, p.price, p.image, COALESCE(s.quantity, 0) AS stock
+        FROM products p
+        LEFT JOIN stock s ON s.product_id = p.id
+        ORDER BY p.id DESC
     ");
 }
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -56,54 +60,72 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 function renderProductGrid(array $products, array $favorites): string {
     ob_start();
     ?>
-        <div class="grid grid-cols-2 gap-3" id="productGrid">
+    <div class="grid grid-cols-2 gap-3" id="productGrid">
 
-            <?php foreach ($products as $product): ?>
-                <?php
-                    $productId = (int)$product["id"];
-                    $isFav = in_array($productId, $favorites, true);
-                ?>
+        <?php foreach ($products as $product): ?>
+            <?php
+                $productId = (int)$product["id"];
+                $isFav = in_array($productId, $favorites, true);
+                $stock = (int)$product["stock"];
 
-                <a href="product.php?id=<?php echo $productId; ?>"
-                   class="group block bg-white dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                if ($stock <= 0) {
+                    $stockText = "Ausverkauft";
+                    $stockColor = "bg-red-500";
+                } elseif ($stock <= 5) {
+                    $stockText = "Geringer Bestand";
+                    $stockColor = "bg-orange-400";
+                } else {
+                    $stockText = "Auf Lager";
+                    $stockColor = "bg-primary";
+                }
+            ?>
 
-                    <div class="relative aspect-[4/3] overflow-hidden">
-                        <img src="<?php echo htmlspecialchars($product["image"]); ?>"
-                             class="w-full h-full object-cover transition-transform group-hover:scale-105"
-                             alt="">
+            <a href="product.php?id=<?php echo $productId; ?>"
+               class="group block bg-white dark:bg-surface-dark rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
 
-                        <?php if (isset($_SESSION["user_id"])): ?>
-                            <form action="favorite_toggle.php"
-                                  method="post"
-                                  onclick="event.stopPropagation();"
-                                  class="absolute top-2 right-2">
-                                <input type="hidden" name="product_id"
-                                       value="<?php echo $productId; ?>">
-                                <button type="submit"
-                                        class="flex size-8 items-center justify-center rounded-full backdrop-blur shadow
-                                        <?php echo $isFav
-                                            ? 'bg-primary text-black'
-                                            : 'bg-white/90 text-gray-500 hover:text-primary'; ?>">
-                                    <span class="material-symbols-outlined"
-                                          style="font-variation-settings:'FILL' <?php echo $isFav ? 1 : 0; ?>">
-                                        favorite
-                                    </span>
-                                </button>
-                            </form>
-                        <?php endif; ?>
+                <div class="relative aspect-[4/3] overflow-hidden">
+                    <img src="<?php echo htmlspecialchars($product["image"]); ?>"
+                         class="w-full h-full object-cover transition-transform group-hover:scale-105"
+                         alt="">
 
+                    <?php if (isset($_SESSION["user_id"])): ?>
+                        <form action="favorite_toggle.php"
+                              method="post"
+                              onclick="event.stopPropagation();"
+                              class="absolute top-2 right-2">
+                            <input type="hidden" name="product_id"
+                                   value="<?php echo $productId; ?>">
+                            <button type="submit"
+                                    class="flex size-8 items-center justify-center rounded-full backdrop-blur shadow
+                                    <?php echo $isFav
+                                        ? 'bg-primary text-black'
+                                        : 'bg-white/90 text-gray-500 hover:text-primary'; ?>">
+                                <span class="material-symbols-outlined"
+                                      style="font-variation-settings:'FILL' <?php echo $isFav ? 1 : 0; ?>">
+                                    favorite
+                                </span>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+
+                <div class="p-3 flex flex-col gap-1">
+                    <h3 class="text-sm font-medium line-clamp-2 min-h-[2.5em]">
+                        <?php echo htmlspecialchars($product["name"]); ?>
+                    </h3>
+
+                    <!-- STOCK BADGE -->
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="w-2 h-2 rounded-full <?php echo $stockColor; ?>"></span>
+                        <span class="text-xs text-gray-500"><?php echo $stockText; ?></span>
                     </div>
 
-                    <div class="p-3 flex flex-col gap-1">
-                        <h3 class="text-sm font-medium line-clamp-2 min-h-[2.5em]">
-                            <?php echo htmlspecialchars($product["name"]); ?>
-                        </h3>
+                    <div class="flex items-center justify-between mt-2">
+                        <span class="font-bold">
+                            <?php echo number_format($product["price"], 2, ",", "."); ?> €
+                        </span>
 
-                        <div class="flex items-center justify-between mt-1">
-                            <span class="font-bold">
-                                <?php echo number_format($product["price"], 2, ",", "."); ?> &euro;
-                            </span>
-
+                        <?php if ($stock > 0): ?>
                             <form action="cart_add.php" method="post"
                                   onclick="event.stopPropagation();">
                                 <input type="hidden" name="product_id"
@@ -113,14 +135,18 @@ function renderProductGrid(array $products, array $favorites): string {
                                     <span class="material-symbols-outlined" style="font-size:18px;">add</span>
                                 </button>
                             </form>
-                        </div>
+                        <?php else: ?>
+                            <div class="flex size-8 items-center justify-center rounded-full bg-gray-300 text-gray-500">
+                                <span class="material-symbols-outlined" style="font-size:18px;">block</span>
+                            </div>
+                        <?php endif; ?>
                     </div>
+                </div>
 
-                </a>
+            </a>
+        <?php endforeach; ?>
 
-            <?php endforeach; ?>
-
-        </div>
+    </div>
     <?php
     return ob_get_clean();
 }
@@ -231,58 +257,32 @@ body { min-height: max(884px, 100dvh); }
 
     function buildQuery(includeAjax = false) {
         const params = new URLSearchParams();
-        if (currentCategory > 0) {
-            params.set("category", currentCategory);
-        }
-        const queryValue = searchInput ? searchInput.value.trim() : "";
-        if (queryValue !== "") {
-            params.set("q", queryValue);
-        }
-        if (includeAjax) {
-            params.set("ajax", "1");
-        }
+        if (currentCategory > 0) params.set("category", currentCategory);
+        const q = searchInput.value.trim();
+        if (q !== "") params.set("q", q);
+        if (includeAjax) params.set("ajax", "1");
         return params.toString();
     }
 
     async function refreshProducts() {
-        if (!productGridWrapper) return;
-        const ajaxQuery = buildQuery(true);
-        const requestUrl = ajaxQuery ? `index.php?${ajaxQuery}` : "index.php";
-        try {
-            const response = await fetch(requestUrl, {
-                headers: { "X-Requested-With": "XMLHttpRequest" }
-            });
-            if (!response.ok) return;
-            const html = await response.text();
-            productGridWrapper.innerHTML = html;
-            const cleanQuery = buildQuery(false);
-            const historyUrl = cleanQuery ? `index.php?${cleanQuery}` : "index.php";
-            if (window.history && window.history.replaceState) {
-                history.replaceState(null, "", historyUrl);
-            }
-        } catch (error) {
-            console.error("Fehler beim Laden der Suchergebnisse", error);
-        }
+        const query = buildQuery(true);
+        const url = query ? `index.php?${query}` : "index.php";
+        const res = await fetch(url);
+        if (!res.ok) return;
+        productGridWrapper.innerHTML = await res.text();
+        const clean = buildQuery(false);
+        history.replaceState(null, "", clean ? `index.php?${clean}` : "index.php");
     }
 
-    if (searchInput) {
-        searchInput.addEventListener("input", () => {
-            if (debounceTimer) {
-                clearTimeout(debounceTimer);
-            }
-            debounceTimer = setTimeout(refreshProducts, 300);
-        });
-    }
+    searchInput.addEventListener("input", () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(refreshProducts, 300);
+    });
 
-    if (searchForm) {
-        searchForm.addEventListener("submit", (event) => {
-            event.preventDefault();
-            if (debounceTimer) {
-                clearTimeout(debounceTimer);
-            }
-            refreshProducts();
-        });
-    }
+    searchForm.addEventListener("submit", e => {
+        e.preventDefault();
+        refreshProducts();
+    });
 })();
 </script>
 

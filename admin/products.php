@@ -13,12 +13,13 @@ $message = "";
 $stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name ASC");
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-/* Default values fürs Formular (damit nach Error nicht alles weg ist) */
+/* Default values fürs Formular */
 $name = "";
 $price = "";
 $description = "";
 $categoryId = "";
 $image = "";
+$stock = 0;
 
 /* Produkt anlegen */
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
@@ -28,32 +29,57 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $description = trim($_POST["description"] ?? "");
     $categoryId = $_POST["category_id"] ?? "";
     $image = trim($_POST["image"] ?? "");
+    $stock = (int)($_POST["stock"] ?? 0);
 
     if ($name === "" || $price === "" || $description === "" || $categoryId === "") {
         $message = "Bitte alle Pflichtfelder ausfüllen.";
     } elseif (!is_numeric($price)) {
         $message = "Preis muss eine Zahl sein.";
+    } elseif ($stock < 0) {
+        $message = "Bestand darf nicht negativ sein.";
     } elseif ($image !== "" && filter_var($image, FILTER_VALIDATE_URL) === false) {
         $message = "Bild-URL ist ungültig (bitte vollständige URL mit https://...).";
     } else {
+
+        /* Produkt anlegen */
         $stmt = $pdo->prepare(
             "INSERT INTO products (name, price, description, category_id, image)
              VALUES (?, ?, ?, ?, ?)"
         );
         $stmt->execute([$name, $price, $description, $categoryId, $image]);
 
-        $message = "Produkt erfolgreich angelegt.";
+        $productId = (int)$pdo->lastInsertId();
 
-        // Formular leeren
+        /* Stock anlegen */
+        if ($productId > 0) {
+            $stmt = $pdo->prepare(
+                "INSERT INTO stock (product_id, quantity)
+                 VALUES (?, ?)"
+            );
+            $stmt->execute([$productId, $stock]);
+
+            $message = "Produkt erfolgreich angelegt.";
+        } else {
+            $message = "Fehler beim Anlegen des Produkts.";
+        }
+
+        /* Formular leeren */
         $name = $price = $description = $categoryId = $image = "";
+        $stock = 0;
     }
 }
 
-/* Produkte laden */
+/* Produkte + Bestand laden */
 $stmt = $pdo->query("
-    SELECT p.id, p.name, p.price, c.name AS category
+    SELECT 
+        p.id,
+        p.name,
+        p.price,
+        c.name AS category,
+        COALESCE(s.quantity, 0) AS stock_qty
     FROM products p
     LEFT JOIN categories c ON c.id = p.category_id
+    LEFT JOIN stock s ON s.product_id = p.id
     ORDER BY p.id DESC
 ");
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -104,7 +130,6 @@ tailwind.config = {
 <!-- CONTENT -->
 <div class="px-4 mt-6 space-y-6">
 
-<!-- MESSAGE -->
 <?php if ($message): ?>
     <div class="bg-green-50 text-green-700 p-3 rounded-lg text-sm">
         <?php echo htmlspecialchars($message); ?>
@@ -128,6 +153,13 @@ tailwind.config = {
             <span class="text-sm font-medium">Preis (€) *</span>
             <input type="number" step="0.01" min="0" name="price" required
                    value="<?php echo htmlspecialchars((string)$price); ?>"
+                   class="w-full h-12 rounded-lg border p-3">
+        </label>
+
+        <label class="block">
+            <span class="text-sm font-medium">Bestand *</span>
+            <input type="number" min="0" name="stock" required
+                   value="<?php echo htmlspecialchars((string)$stock); ?>"
                    class="w-full h-12 rounded-lg border p-3">
         </label>
 
@@ -174,6 +206,19 @@ tailwind.config = {
     <?php endif; ?>
 
     <?php foreach ($products as $product): ?>
+        <?php
+            $qty = (int)$product["stock_qty"];
+            if ($qty === 0) {
+                $badgeText = "Ausverkauft";
+                $badgeColor = "bg-red-500";
+            } elseif ($qty <= 5) {
+                $badgeText = "Geringer Bestand";
+                $badgeColor = "bg-orange-400";
+            } else {
+                $badgeText = "Auf Lager";
+                $badgeColor = "bg-primary";
+            }
+        ?>
         <div class="bg-surface rounded-xl p-4 shadow-sm flex justify-between items-center">
             <div class="min-w-0">
                 <p class="font-semibold truncate">
@@ -182,6 +227,13 @@ tailwind.config = {
                 <p class="text-xs text-gray-500">
                     <?php echo htmlspecialchars($product["category"] ?? "—"); ?>
                 </p>
+
+                <!-- STOCK BADGE -->
+                <div class="flex items-center gap-2 mt-1">
+                    <span class="w-2 h-2 rounded-full <?php echo $badgeColor; ?>"></span>
+                    <span class="text-xs text-gray-600"><?php echo $badgeText; ?></span>
+                </div>
+
                 <p class="text-sm font-bold mt-1">
                     <?php echo number_format((float)$product["price"], 2, ",", "."); ?> €
                 </p>

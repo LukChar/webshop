@@ -27,13 +27,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $description = trim($_POST["description"] ?? "");
     $image = trim($_POST["image"] ?? "");
     $categoryId = ($_POST["category_id"] ?? "") !== "" ? (int)$_POST["category_id"] : null;
+    $stock = (int)($_POST["stock"] ?? 0);
 
     if ($name === "" || $price === "" || $description === "") {
         $error = "Bitte alle Pflichtfelder ausfüllen.";
     } elseif (!is_numeric($price)) {
         $error = "Preis muss eine Zahl sein.";
+    } elseif ($stock < 0) {
+        $error = "Bestand darf nicht negativ sein.";
     } else {
 
+        /* Produkt anlegen */
         $stmt = $pdo->prepare("
             INSERT INTO products (name, price, description, image, category_id)
             VALUES (?, ?, ?, ?, ?)
@@ -46,11 +50,26 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $categoryId
         ]);
 
+        $productId = $pdo->lastInsertId();
+
+        /* Stock anlegen */
+        if ($productId) {
+            $stmt = $pdo->prepare("
+                INSERT INTO stock (product_id, quantity)
+                VALUES (?, ?)
+            ");
+            $stmt->execute([
+                (int)$productId,
+                $stock
+            ]);
+        }
+
         $success = "Produkt erfolgreich angelegt.";
 
-        // Formular leeren
+        /* Formular leeren */
         $name = $price = $description = $image = "";
         $categoryId = null;
+        $stock = 0;
     }
 }
 ?>
@@ -126,6 +145,18 @@ tailwind.config = {
         </label>
 
         <label>
+            <span class="text-sm font-medium">Bestand *</span>
+            <input
+                type="number"
+                name="stock"
+                min="0"
+                required
+                value="<?php echo htmlspecialchars($stock ?? 0); ?>"
+                class="w-full h-12 rounded-lg border p-3"
+            >
+        </label>
+
+        <label>
             <span class="text-sm font-medium">Kategorie</span>
             <select
                 name="category_id"
@@ -133,7 +164,8 @@ tailwind.config = {
             >
                 <option value="">– Keine Kategorie –</option>
                 <?php foreach ($categories as $cat): ?>
-                    <option value="<?php echo $cat["id"]; ?>">
+                    <option value="<?php echo $cat["id"]; ?>"
+                        <?php if (($categoryId ?? null) === (int)$cat["id"]) echo "selected"; ?>>
                         <?php echo htmlspecialchars($cat["name"]); ?>
                     </option>
                 <?php endforeach; ?>
