@@ -1,10 +1,10 @@
 <?php
 
-$host = getenv("MYSQLHOST") ?: "localhost";
-$db   = getenv("MYSQLDATABASE") ?: "webshop";
-$user = getenv("MYSQLUSER") ?: "root";
-$pass = getenv("MYSQLPASSWORD") ?: "";
-$port = getenv("MYSQLPORT") ?: 3306;
+$host = getenv("MYSQL_HOST") ?: "localhost";
+$db   = getenv("MYSQL_DATABASE") ?: "webshop";
+$user = getenv("MYSQL_USER") ?: "root";
+$pass = getenv("MYSQL_PASSWORD") ?: "";
+$port = getenv("MYSQL_PORT") ?: 3306;
 
 try {
     $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
