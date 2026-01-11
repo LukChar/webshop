@@ -10,6 +10,28 @@ require "../includes/db.php";
 $productId = (int)($_GET["id"] ?? 0);
 $message = "";
 
+/* Produkt löschen */
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_product"])) {
+
+    /* zuerst Stock löschen */
+    $stmt = $pdo->prepare("
+        DELETE FROM stock
+        WHERE product_id = ?
+    ");
+    $stmt->execute([$productId]);
+
+    /* dann Produkt löschen */
+    $stmt = $pdo->prepare("
+        DELETE FROM products
+        WHERE id = ?
+    ");
+    $stmt->execute([$productId]);
+
+    /* zurück zur Übersicht */
+    header("Location: products.php?deleted=1");
+    exit;
+}
+
 /* Produkt laden */
 $stmt = $pdo->prepare("
     SELECT id, name, price, description, category_id
@@ -192,6 +214,16 @@ tailwind.config = {
                 class="w-full h-12 bg-primary font-bold rounded-lg text-[#102216]">
             Änderungen speichern
         </button>
+
+        <hr class="my-6">
+
+        <form method="post" onsubmit="return confirm('Produkt wirklich endgültig löschen?');">
+            <input type="hidden" name="delete_product" value="1">
+            <button type="submit"
+                class="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">
+            Produkt löschen
+        </button>
+        </form>
 
     </form>
 </div>
