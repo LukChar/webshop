@@ -1,15 +1,26 @@
 <?php
-var_dump($_ENV);
-die();
 
-$host = getenv("MYSQL_HOST") ?: "localhost";
-$db   = getenv("MYSQL_DATABASE") ?: "webshop";
-$user = getenv("MYSQL_USER") ?: "root";
-$pass = getenv("MYSQL_PASSWORD") ?: "";
-$port = getenv("MYSQL_PORT") ?: 3306;
+$mysqlUrl = getenv("MYSQL_URL");
+
+if ($mysqlUrl) {
+    $db = parse_url($mysqlUrl);
+
+    $host = $db["host"];
+    $port = $db["port"] ?? 3306;
+    $user = $db["user"];
+    $pass = $db["pass"];
+    $dbname = ltrim($db["path"], "/");
+} else {
+    // Local fallback (XAMPP / MAMP)
+    $host = "localhost";
+    $port = 3306;
+    $user = "root";
+    $pass = "";
+    $dbname = "webshop";
+}
 
 try {
-    $dsn = "mysql:host=$host;port=$port;dbname=$db;charset=utf8mb4";
+    $dsn = "mysql:host=$host;port=$port;dbname=$dbname;charset=utf8mb4";
     $pdo = new PDO($dsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
     ]);
