@@ -1,4 +1,6 @@
 <?php
+var_dump($_ENV);
+die();
 
 $host = getenv("MYSQL_HOST") ?: "localhost";
 $db   = getenv("MYSQL_DATABASE") ?: "webshop";
