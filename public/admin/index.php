@@ -41,7 +41,7 @@ if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
 
         <!-- TOP BAR -->
         <div class="flex items-center gap-3 mb-6">
-            <a href="../public/profile.php"
+            <a href="../profile.php"
                 class="flex size-10 items-center justify-center rounded-full hover:bg-gray-200 transition">
                 <span class="material-symbols-outlined">arrow_back</span>
             </a>
