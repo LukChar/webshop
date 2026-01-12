@@ -4,7 +4,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
-require_once "../includes/db.php";
+require_once "../../includes/db.php";
 
 $error = "";
 $email = "";
@@ -41,7 +41,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION["user_id"] = $user["id"];
             $_SESSION["role"] = $user["role"];
 
-            header("Location: ../public/index.php");
+            header("Location: /index.php");
             exit;
         }
     }
@@ -90,7 +90,7 @@ body { min-height: max(884px, 100dvh); }
 
     <!-- Top Bar -->
     <div class="flex items-center p-4 justify-between">
-        <a href="../public/index.php"
+        <a href="/index.php"
            class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
@@ -171,7 +171,7 @@ body { min-height: max(884px, 100dvh); }
 
     <!-- Google Login -->
     <div class="px-6 pb-6">
-        <a href="/webshop/auth/google_login.php"
+        <a href="/auth/google_login.php"
            class="flex w-full items-center justify-center gap-3 h-12 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
             <!-- Google SVG -->
             <svg class="h-5 w-5" viewBox="0 0 24 24">

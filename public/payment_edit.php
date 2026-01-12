@@ -13,7 +13,7 @@ $isNew = isset($_GET["new"]) && $_GET["new"] === "1";
 $paymentId = isset($_GET["id"]) ? (int)$_GET["id"] : 0;
 
 if (!$isNew && $paymentId <= 0) {
-    header("Location: /webshop/public/payments.php");
+    header("Location: /payments.php");
     exit;
 }
 
@@ -23,7 +23,7 @@ if (!$isNew) {
     $stmt->execute([$paymentId, $userId]);
     $payment = $stmt->fetch(PDO::FETCH_ASSOC);
     if (!$payment) {
-        header("Location: /webshop/public/payments.php");
+        header("Location: /payments.php");
         exit;
     }
 }
@@ -41,7 +41,7 @@ $form = [
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     if (!$isNew && isset($_POST["delete"])) {
         $pdo->prepare("DELETE FROM payments WHERE id = ? AND user_id = ?")->execute([$paymentId, $userId]);
-        header("Location: /webshop/public/payments.php");
+        header("Location: /payments.php");
         exit;
     }
 
@@ -108,7 +108,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             ]);
         }
 
-        header("Location: /webshop/public/payments.php");
+        header("Location: /payments.php");
         exit;
     }
 }
@@ -158,7 +158,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <div class="max-w-md mx-auto min-h-screen flex flex-col">
 
     <header class="sticky top-0 z-10 flex items-center justify-between bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md p-4 border-b border-border-light dark:border-border-dark">
-        <a href="/webshop/public/payments.php"
+        <a href="/payments.php"
            class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>

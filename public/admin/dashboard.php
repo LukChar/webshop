@@ -1,5 +1,5 @@
 <?php
-require "../includes/admin_auth.php";
+require "../../includes/admin_auth.php";
 ?>
 <!DOCTYPE html>
 <html lang="de">

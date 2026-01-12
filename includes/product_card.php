@@ -19,7 +19,7 @@ if (isset($_SESSION["user_id"])) {
     <?php if (isset($_SESSION["user_id"])): ?>
         <form
             method="post"
-            action="/webshop/public/favorite_toggle.php"
+            action="/favorite_toggle.php"
             class="absolute top-2 right-2 z-10"
             onclick="event.stopPropagation();"
         >

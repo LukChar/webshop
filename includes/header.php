@@ -12,7 +12,7 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
 
         <!-- 🔹 EBENE 1: TITEL (KLICKBAR, ZENTRIERT, BLOCKIERT NICHT) -->
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-            <a href="/webshop/public/index.php"
+            <a href="/index.php"
                class="text-xl font-bold select-none pointer-events-auto cursor-pointer">
                 <span class="text-[#111813] dark:text-white">Campus</span>
                 <span class="text-primary">Shop</span>
@@ -23,7 +23,7 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
         <div class="relative z-10 flex items-center h-full px-4">
 
             <!-- Profil -->
-            <a href="/webshop/public/profile.php"
+            <a href="/profile.php"
                class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark">
                 <span class="material-symbols-outlined" style="font-size:28px;">
                     account_circle
@@ -35,7 +35,7 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
 
             <!-- Admin -->
             <?php if ($isAdmin): ?>
-                <a href="/webshop/admin/index.php"
+                <a href="/admin/index.php"
                    class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark"
                    title="Admin Bereich">
                     <span class="material-symbols-outlined">settings</span>
@@ -43,7 +43,7 @@ $isAdmin = isset($_SESSION["role"]) && $_SESSION["role"] === "admin";
             <?php endif; ?>
 
             <!-- Warenkorb -->
-            <a href="/webshop/public/cart.php"
+            <a href="/cart.php"
                class="relative flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-surface-dark ml-1">
                 <span class="material-symbols-outlined" style="font-size:26px;">
                     shopping_cart

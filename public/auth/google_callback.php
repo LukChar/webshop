@@ -7,8 +7,8 @@ error_reporting(E_ALL);
 
 session_start();
 
-require_once __DIR__ . "/../includes/db.php";
-require_once __DIR__ . "/../includes/google_oauth.php";
+require_once __DIR__ . "/../../includes/db.php";
+require_once __DIR__ . "/../../includes/google_oauth.php";
 
 /* 1) Google Error? */
 if (isset($_GET["error"]) && $_GET["error"] !== "") {
@@ -133,5 +133,5 @@ $_SESSION["user_id"] = $userId;
 $_SESSION["role"] = $role;
 
 /* 8) Redirect */
-header("Location: /webshop/public/index.php");
+header("Location: /index.php");
 exit;

@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 session_start();
 
 if (!isset($_SESSION["user_id"])) {
-    header("Location: /webshop/auth/login.php");
+    header("Location: /auth/login.php");
     exit;
 }
 
@@ -163,7 +163,7 @@ body { min-height: max(884px, 100dvh); }
 
         <div class="bg-surface-light dark:bg-surface-dark rounded-2xl shadow-sm border border-border-light dark:border-border-dark divide-y">
 
-            <a href="/webshop/public/my_orders.php"
+            <a href="/my_orders.php"
                class="block p-4 hover:bg-gray-50 dark:hover:bg-white/5">
                 Meine Bestellungen
             </a>
@@ -173,7 +173,7 @@ body { min-height: max(884px, 100dvh); }
                 Favoriten
             </a>
 
-            <a href="/webshop/auth/logout.php"
+            <a href="/auth/logout.php"
                class="block p-4 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10">
                 Abmelden
             </a>

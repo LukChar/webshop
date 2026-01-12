@@ -4,7 +4,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 session_start();
-require_once "../includes/db.php";
+require_once "../../includes/db.php";
 
 $error = "";
 
@@ -41,7 +41,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $_SESSION["user_id"] = $pdo->lastInsertId();
             $_SESSION["role"] = "user";
 
-            header("Location: ../public/index.php");
+            header("Location: /index.php");
             exit;
         }
     }
@@ -179,7 +179,7 @@ body { min-height: max(884px, 100dvh); }
 
     <!-- Google Register -->
     <div class="px-6 pb-6">
-        <a href="/webshop/auth/google_login.php"
+        <a href="/auth/google_login.php"
            class="flex w-full items-center justify-center gap-3 h-12 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
             <!-- Google SVG -->
             <svg class="h-5 w-5" viewBox="0 0 24 24">

@@ -98,7 +98,7 @@ $items = $stmt->fetchAll();
 <!-- Header -->
 <header class="sticky top-0 z-10 bg-white border-b">
     <div class="max-w-md mx-auto flex items-center p-4 gap-4">
-        <a href="<?php echo $isAdmin ? '/webshop/admin/orders.php' : 'my_orders.php'; ?>"
+        <a href="<?php echo $isAdmin ? '/admin/orders.php' : 'my_orders.php'; ?>"
            class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-gray-100">
             ←
         </a>

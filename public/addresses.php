@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 session_start();
 
 if (!isset($_SESSION["user_id"])) {
-    header("Location: /webshop/auth/login.php");
+    header("Location: /auth/login.php");
     exit;
 }
 
@@ -82,7 +82,7 @@ body { min-height: max(884px, 100dvh); }
 
     <!-- HEADER -->
     <header class="sticky top-0 z-10 flex items-center justify-between bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md p-4 border-b border-border-light dark:border-border-dark">
-        <a href="/webshop/public/profile.php"
+        <a href="/profile.php"
            class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
@@ -96,7 +96,7 @@ body { min-height: max(884px, 100dvh); }
             <p class="text-sm text-gray-600">
                 Hier kannst du deine Lieferadressen verwalten, bearbeiten oder eine neue Adresse speichern.
             </p>
-            <a href="/webshop/public/address_edit.php"
+            <a href="/address_edit.php"
                class="flex items-center justify-center gap-2 rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-4 py-3 font-semibold text-sm shadow-sm hover:border-primary hover:text-primary transition-all">
                 <span class="material-symbols-outlined text-primary">add_location</span>
                 Neue Adresse hinzufügen
@@ -132,7 +132,7 @@ body { min-height: max(884px, 100dvh); }
                     <div class="flex items-center justify-between text-xs text-gray-500">
                         <span><?= htmlspecialchars($address["created_at"] ?? "") ?></span>
                         <div class="flex items-center gap-2">
-                            <a href="/webshop/public/address_edit.php?id=<?= htmlspecialchars($address["id"]) ?>"
+                            <a href="/address_edit.php?id=<?= htmlspecialchars($address["id"]) ?>"
                                class="inline-flex items-center gap-1 rounded-full border border-border-light dark:border-border-dark px-3 py-1 text-xs font-semibold text-[#111813] dark:text-white hover:border-primary hover:text-primary transition-colors">
                                 <span class="material-symbols-outlined text-[16px]">edit</span>
                                 Bearbeiten

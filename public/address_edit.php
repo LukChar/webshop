@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 session_start();
 
 if (!isset($_SESSION["user_id"])) {
-    header("Location: /webshop/auth/login.php");
+    header("Location: /auth/login.php");
     exit;
 }
 
@@ -142,7 +142,7 @@ body { min-height: max(884px, 100dvh); }
 
 <!-- HEADER -->
 <header class="sticky top-0 z-10 flex items-center justify-between bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md p-4 border-b border-border-light dark:border-border-dark">
-    <a href="/webshop/public/addresses.php"
+    <a href="/addresses.php"
        class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
         <span class="material-symbols-outlined">arrow_back</span>
     </a>
