@@ -10,7 +10,9 @@ require "../includes/db.php";
 $productId = (int)($_GET["id"] ?? 0);
 $message = "";
 
-/* Produkt löschen */
+/* =========================
+   PRODUKT LÖSCHEN
+   ========================= */
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_product"])) {
 
     /* zuerst Stock löschen */
@@ -27,12 +29,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["delete_product"])) {
     ");
     $stmt->execute([$productId]);
 
-    /* zurück zur Übersicht */
     header("Location: products.php?deleted=1");
     exit;
 }
 
-/* Produkt laden */
+/* =========================
+   PRODUKT LADEN
+   ========================= */
 $stmt = $pdo->prepare("
     SELECT id, name, price, description, category_id
     FROM products
@@ -46,7 +49,9 @@ if (!$product) {
     exit;
 }
 
-/* Stock laden */
+/* =========================
+   STOCK LADEN
+   ========================= */
 $stmt = $pdo->prepare("
     SELECT quantity
     FROM stock
@@ -56,7 +61,9 @@ $stmt->execute([$productId]);
 $stockRow = $stmt->fetch(PDO::FETCH_ASSOC);
 $stock = $stockRow ? (int)$stockRow["quantity"] : 0;
 
-/* Kategorien laden */
+/* =========================
+   KATEGORIEN LADEN
+   ========================= */
 $stmt = $pdo->query("
     SELECT id, name
     FROM categories
@@ -64,8 +71,10 @@ $stmt = $pdo->query("
 ");
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-/* Produkt speichern */
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
+/* =========================
+   PRODUKT SPEICHERN
+   ========================= */
+if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST["save_product"])) {
 
     $name = trim($_POST["name"] ?? "");
     $price = trim($_POST["price"] ?? "");
@@ -105,7 +114,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $message = "Produkt erfolgreich aktualisiert.";
 
-        /* Lokale Werte aktualisieren */
         $product["name"] = $name;
         $product["price"] = $price;
         $product["description"] = $description;
@@ -147,7 +155,6 @@ tailwind.config = {
 
 <div class="max-w-md mx-auto min-h-screen pb-24">
 
-<!-- HEADER -->
 <header class="sticky top-0 bg-bgLight/95 backdrop-blur border-b px-4 py-4 flex items-center gap-3">
     <a href="products.php"
        class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100">
@@ -156,36 +163,41 @@ tailwind.config = {
     <h1 class="text-xl font-bold">Produkt bearbeiten</h1>
 </header>
 
-<!-- CONTENT -->
 <div class="px-4 mt-6 space-y-6">
 
 <?php if ($message): ?>
     <div class="bg-green-50 text-green-700 p-3 rounded-lg text-sm">
-        <?php echo htmlspecialchars($message); ?>
+        <?= htmlspecialchars($message); ?>
     </div>
 <?php endif; ?>
 
 <div class="bg-surface rounded-xl p-4 shadow-sm">
+
+    <!-- ===================== -->
+    <!-- SPEICHERN -->
+    <!-- ===================== -->
     <form method="post" class="space-y-4">
+
+        <input type="hidden" name="save_product" value="1">
 
         <label class="block">
             <span class="text-sm font-medium">Produktname *</span>
             <input type="text" name="name" required
-                   value="<?php echo htmlspecialchars($product["name"]); ?>"
+                   value="<?= htmlspecialchars($product["name"]); ?>"
                    class="w-full h-12 rounded-lg border p-3">
         </label>
 
         <label class="block">
             <span class="text-sm font-medium">Preis (€) *</span>
             <input type="number" step="0.01" name="price" required
-                   value="<?php echo htmlspecialchars($product["price"]); ?>"
+                   value="<?= htmlspecialchars($product["price"]); ?>"
                    class="w-full h-12 rounded-lg border p-3">
         </label>
 
         <label class="block">
             <span class="text-sm font-medium">Bestand *</span>
             <input type="number" min="0" name="stock" required
-                   value="<?php echo htmlspecialchars((string)$stock); ?>"
+                   value="<?= htmlspecialchars((string)$stock); ?>"
                    class="w-full h-12 rounded-lg border p-3">
         </label>
 
@@ -194,9 +206,9 @@ tailwind.config = {
             <select name="category_id" class="w-full h-12 rounded-lg border p-3">
                 <option value="">– Keine Kategorie –</option>
                 <?php foreach ($categories as $cat): ?>
-                    <option value="<?php echo (int)$cat["id"]; ?>"
+                    <option value="<?= (int)$cat["id"]; ?>"
                         <?php if ((int)$cat["id"] === (int)$product["category_id"]) echo "selected"; ?>>
-                        <?php echo htmlspecialchars($cat["name"]); ?>
+                        <?= htmlspecialchars($cat["name"]); ?>
                     </option>
                 <?php endforeach; ?>
             </select>
@@ -205,9 +217,7 @@ tailwind.config = {
         <label class="block">
             <span class="text-sm font-medium">Beschreibung *</span>
             <textarea name="description" rows="4" required
-                      class="w-full rounded-lg border p-3"><?php
-                echo htmlspecialchars($product["description"]);
-            ?></textarea>
+                      class="w-full rounded-lg border p-3"><?= htmlspecialchars($product["description"]); ?></textarea>
         </label>
 
         <button type="submit"
@@ -215,17 +225,24 @@ tailwind.config = {
             Änderungen speichern
         </button>
 
-        <hr class="my-6">
+    </form>
 
-        <form method="post" onsubmit="return confirm('Produkt wirklich endgültig löschen?');">
-            <input type="hidden" name="delete_product" value="1">
-            <button type="submit"
+    <!-- ===================== -->
+    <!-- LÖSCHEN -->
+    <!-- ===================== -->
+    <form method="post"
+          onsubmit="return confirm('Produkt wirklich endgültig löschen?');"
+          class="mt-6">
+
+        <input type="hidden" name="delete_product" value="1">
+
+        <button type="submit"
                 class="w-full h-12 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg">
             Produkt löschen
         </button>
-        </form>
 
     </form>
+
 </div>
 
 </div>
