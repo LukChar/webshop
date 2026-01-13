@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION["user_id"])) {
-    header("Location: /webshop/auth/login.php");
+    header("Location: /auth/login.php");
     exit;
 }
 
@@ -108,7 +108,7 @@ body { min-height: max(884px, 100dvh); }
 <div class="grid grid-cols-2 gap-4 px-4 mt-8">
 
     <!-- Bestellungen -->
-    <a href="/webshop/public/my_orders.php"
+    <a href="/my_orders.php"
        class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl text-center shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary mb-1">shopping_bag</span>
         <p class="text-2xl font-bold"><?php echo $orderCount; ?></p>
@@ -116,7 +116,7 @@ body { min-height: max(884px, 100dvh); }
     </a>
 
     <!-- Favoriten -->
-    <a href="/webshop/public/favorites.php"
+    <a href="/favorites.php"
        class="bg-surface-light dark:bg-surface-dark p-4 rounded-2xl text-center shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary mb-1">favorite</span>
         <p class="text-2xl font-bold"><?php echo $favoritesCount; ?></p>
@@ -128,33 +128,33 @@ body { min-height: max(884px, 100dvh); }
 <!-- ACTIONS -->
 <div class="px-4 mt-8 space-y-3">
 
-    <a href="/webshop/public/profile_edit.php"
+    <a href="/profile_edit.php"
        class="flex items-center gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary">edit</span>
         <span class="font-medium">Profil bearbeiten</span>
     </a>
 
-    <a href="/webshop/public/addresses.php"
+    <a href="/addresses.php"
        class="flex items-center gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary">location_on</span>
         <span class="font-medium">Lieferadressen</span>
     </a>
 
-    <a href="/webshop/public/payments.php"
+    <a href="/payments.php"
        class="flex items-center gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark">
         <span class="material-symbols-outlined text-primary">credit_card</span>
         <span class="font-medium">Zahlungsmethoden</span>
     </a>
 
     <?php if ($role === "admin"): ?>
-        <a href="/webshop/admin/index.php"
+        <a href="/admin/index.php"
            class="flex items-center gap-3 bg-surface-light dark:bg-surface-dark p-4 rounded-2xl shadow-sm border border-border-light dark:border-border-dark">
             <span class="material-symbols-outlined text-primary">dashboard</span>
             <span class="font-medium">Admin Dashboard</span>
         </a>
     <?php endif; ?>
 
-    <a href="/webshop/auth/logout.php"
+    <a href="/auth/logout.php"
        class="flex items-center gap-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-2xl shadow-sm">
         <span class="material-symbols-outlined">logout</span>
         <span class="font-medium">Logout</span>

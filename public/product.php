@@ -185,7 +185,7 @@ function pct($part, $total) {
 
         <!-- 🔹 ZENTRIERTER TITEL (KLICKBAR, BLOCKIERT NICHT) -->
         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <a href="/webshop/public/index.php"
+            <a href="/index.php"
                class="text-xl font-bold select-none pointer-events-auto cursor-pointer">
                 <span class="text-[#111813] dark:text-white">Campus</span>
                 <span class="text-primary">Shop</span>

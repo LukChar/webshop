@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once __DIR__ . "/../includes/google_oauth.php";
+require_once __DIR__ . "/../../includes/google_oauth.php";
 
 // Hard-Fail wenn Config fehlt (hilft beim Debuggen)
 if (GOOGLE_CLIENT_ID === "" || GOOGLE_REDIRECT_URI === "") {

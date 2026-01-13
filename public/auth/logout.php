@@ -8,5 +8,5 @@ $_SESSION = [];
 session_destroy();
 
 /* Zur Startseite weiterleiten */
-header("Location: ../public/index.php");
+header("Location: /index.php");
 exit;

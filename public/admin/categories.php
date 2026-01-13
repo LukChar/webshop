@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once "../includes/db.php";
+require_once "../../includes/db.php";
 
 /* Admin-Check */
 if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {

@@ -10,7 +10,7 @@ if (!$orderId) {
 
 if (!isset($_SESSION["user_id"])) {
     // Passe /webshop ggf. an deinen Projektordner an
-    $redirect = "/webshop/public/payment/paypal_dummy.php?order_id=" . urlencode($orderId);
+    $redirect = "/payment/paypal_dummy.php?order_id=" . urlencode($orderId);
     header("Location: ../../auth/login.php?redirect=" . urlencode($redirect));
     exit;
 }

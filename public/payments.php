@@ -2,7 +2,7 @@
 session_start();
 
 if (!isset($_SESSION["user_id"])) {
-    header("Location: /webshop/auth/login.php");
+    header("Location: /auth/login.php");
     exit;
 }
 
@@ -75,7 +75,7 @@ $cards = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="max-w-md mx-auto min-h-screen flex flex-col">
 
     <header class="sticky top-0 z-10 flex items-center justify-between bg-surface-light/90 dark:bg-surface-dark/90 backdrop-blur-md p-4 border-b border-border-light dark:border-border-dark">
-        <a href="/webshop/public/profile.php"
+        <a href="/profile.php"
            class="flex size-10 items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
             <span class="material-symbols-outlined">arrow_back</span>
         </a>
@@ -89,7 +89,7 @@ $cards = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <p class="text-sm text-gray-600">
                 Hinterlege deine bevorzugte Karte und verwalte bestehende Zahlungsdaten.
             </p>
-            <a href="/webshop/public/payment_edit.php?new=1"
+            <a href="/payment_edit.php?new=1"
                class="flex items-center justify-center gap-2 rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark px-4 py-3 font-semibold text-sm shadow-sm hover:border-primary hover:text-primary transition-all">
                 <span class="material-symbols-outlined text-primary">credit_card</span>
                 Neue Zahlungsmethode hinzufügen
@@ -121,7 +121,7 @@ $cards = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <div class="flex items-center justify-between text-xs text-gray-500">
                         <span><?= htmlspecialchars($card["created_at"] ?? "") ?></span>
                         <div class="flex items-center gap-2">
-                            <a href="/webshop/public/payment_edit.php?id=<?= htmlspecialchars($card["id"]) ?>"
+                            <a href="/payment_edit.php?id=<?= htmlspecialchars($card["id"]) ?>"
                                class="inline-flex items-center gap-1 rounded-full border border-border-light dark:border-border-dark px-3 py-1 text-xs font-semibold text-[#111813] dark:text-white hover:border-primary hover:text-primary transition-colors">
                                 <span class="material-symbols-outlined text-[16px]">edit</span>
                                 Bearbeiten

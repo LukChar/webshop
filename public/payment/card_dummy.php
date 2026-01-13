@@ -9,7 +9,7 @@ if (!$orderId) {
 }
 
 if (!isset($_SESSION["user_id"])) {
-    $redirect = "/webshop/public/payment/card_dummy.php?order_id=" . urlencode($orderId);
+    $redirect = "/payment/card_dummy.php?order_id=" . urlencode($orderId);
     header("Location: ../../auth/login.php?redirect=" . urlencode($redirect));
     exit;
 }

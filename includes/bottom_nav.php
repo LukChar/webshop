@@ -25,14 +25,14 @@ if (isset($_SESSION["user_id"])) {
     <div class="flex items-center justify-center gap-8 h-16 max-w-md mx-auto">
 
         <!-- Home -->
-        <a href="/webshop/public/index.php"
+        <a href="/index.php"
            class="flex flex-col items-center text-gray-400 hover:text-primary">
             <span class="material-symbols-outlined text-[24px]">home</span>
             <span class="text-[10px] font-medium">Home</span>
         </a>
 
         <!-- Favoriten -->
-        <a href="/webshop/public/favorites.php"
+        <a href="/favorites.php"
            class="relative flex flex-col items-center text-gray-400 hover:text-primary">
             <span class="material-symbols-outlined text-[24px]">favorite</span>
             <span class="text-[10px] font-medium">Favoriten</span>
@@ -45,7 +45,7 @@ if (isset($_SESSION["user_id"])) {
         </a>
 
         <!-- Warenkorb -->
-        <a href="/webshop/public/cart.php"
+        <a href="/cart.php"
            class="relative flex flex-col items-center text-gray-400 hover:text-primary">
             <span class="material-symbols-outlined text-[24px]">shopping_cart</span>
             <span class="text-[10px] font-medium">Warenkorb</span>
@@ -58,7 +58,7 @@ if (isset($_SESSION["user_id"])) {
         </a>
 
         <!-- Profil -->
-        <a href="/webshop/public/profile.php"
+        <a href="/profile.php"
            class="flex flex-col items-center text-gray-400 hover:text-primary">
             <span class="material-symbols-outlined text-[24px]">person</span>
             <span class="text-[10px] font-medium">Profil</span>
