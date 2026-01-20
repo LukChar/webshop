@@ -59,7 +59,7 @@ if (!isset($_SESSION["user_id"]) || ($_SESSION["role"] ?? "") !== "admin") {
             Shop & Inhalte
         </h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
 
             <a href="products.php" class="group bg-white rounded-xl p-5 border shadow-sm hover:shadow-md transition">
                 <div class="flex items-center gap-4">
